@@ -3,7 +3,7 @@ import { DSP_COLORS, DSP_NAMES, DSP_STAT_LABELS } from "../lib/constants";
 import { TrendChart } from "./StatsChart";
 import type { DailyStat, TopTrack, TopCurator } from "../lib/types";
 import { format, subDays } from "date-fns";
-import { formatNumber, getHeroStat } from "../lib/utils";
+import { formatNumber, getHeroStat, getPlayCountStat } from "../lib/utils";
 
 interface PlatformDetailProps {
   source: string;
@@ -27,6 +27,8 @@ export function PlatformDetail({
   const color = DSP_COLORS[source] ?? "#888";
   const name = DSP_NAMES[source] ?? source;
   const hero = getHeroStat(source, stats);
+  const playCount = getPlayCountStat(source, stats);
+  const showPlayCount = playCount && playCount.key !== hero?.key;
 
   const filteredHistoric = useMemo(() => {
     const cutoff = format(subDays(new Date(), period), "yyyy-MM-dd");
@@ -71,7 +73,7 @@ export function PlatformDetail({
 
       <div className="detail-stats-grid">
         {Object.entries(stats)
-          .filter(([k]) => k !== hero?.key)
+          .filter(([k]) => k !== hero?.key && !(showPlayCount && k === playCount?.key))
           .map(([key, value]) => (
             <div key={key} className="detail-stat-card">
               <div className="detail-stat-value">{formatNumber(value)}</div>
@@ -79,6 +81,15 @@ export function PlatformDetail({
             </div>
           ))}
       </div>
+
+      {showPlayCount && (
+        <div className="today-play-count" style={{ borderTopColor: color }}>
+          <div className="today-play-count-label">
+            Today&apos;s {DSP_STAT_LABELS[playCount.key] ?? playCount.key}
+          </div>
+          <div className="today-play-count-value">{formatNumber(playCount.value)}</div>
+        </div>
+      )}
 
       <div className="top-tracks-section">
         <h3>Top Tracks</h3>

@@ -32,3 +32,30 @@ export function getHeroStat(
   const first = Object.entries(stats)[0];
   return first ? { key: first[0], value: first[1] } : null;
 }
+
+export const PLAY_COUNT_STAT: Record<string, string> = {
+  spotify: "streams",
+  apple_music: "streams",
+  deezer: "streams",
+  amazon: "streams",
+  youtube: "views",
+  tiktok: "views",
+  soundcloud: "plays",
+  shazam: "shazams",
+};
+
+const PLAY_COUNT_FALLBACK = ["streams", "views", "plays", "creates", "shazams"];
+
+export function getPlayCountStat(
+  source: string,
+  stats: Record<string, number>
+): { key: string; value: number } | null {
+  const preferred = PLAY_COUNT_STAT[source];
+  if (preferred && stats[preferred] != null) {
+    return { key: preferred, value: stats[preferred] };
+  }
+  for (const key of PLAY_COUNT_FALLBACK) {
+    if (stats[key] != null) return { key, value: stats[key] };
+  }
+  return null;
+}

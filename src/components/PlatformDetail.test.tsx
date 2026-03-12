@@ -79,4 +79,19 @@ describe("PlatformDetail", () => {
     expect(screen.getByText("60d")).toBeInTheDocument();
     expect(screen.getByText("90d")).toBeInTheDocument();
   });
+
+  it("renders today's play count card for spotify", () => {
+    render(<PlatformDetail {...defaultProps} />);
+    // Hero is monthly_listeners, play count is streams — card should show
+    expect(screen.getByText("Today's Streams")).toBeInTheDocument();
+    expect(screen.getByText("100.0K")).toBeInTheDocument();
+  });
+
+  it("does not render play count card when it matches hero stat", () => {
+    // YouTube: hero=views, play count=views → should NOT show card
+    render(
+      <PlatformDetail {...defaultProps} source="youtube" stats={{ views: 5000, followers: 200 }} />
+    );
+    expect(screen.queryByText(/Today's/)).not.toBeInTheDocument();
+  });
 });

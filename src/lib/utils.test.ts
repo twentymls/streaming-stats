@@ -1,4 +1,10 @@
-import { formatNumber, getHeroStat, HERO_STAT_PRIORITY } from "./utils";
+import {
+  formatNumber,
+  getHeroStat,
+  getPlayCountStat,
+  HERO_STAT_PRIORITY,
+  PLAY_COUNT_STAT,
+} from "./utils";
 
 describe("formatNumber", () => {
   it("returns locale string for numbers under 1000", () => {
@@ -71,5 +77,58 @@ describe("HERO_STAT_PRIORITY", () => {
       expect(HERO_STAT_PRIORITY[p]).toBeDefined();
       expect(HERO_STAT_PRIORITY[p].length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("PLAY_COUNT_STAT", () => {
+  it("has entries for all 8 default platforms", () => {
+    const platforms = [
+      "spotify",
+      "youtube",
+      "tiktok",
+      "shazam",
+      "soundcloud",
+      "apple_music",
+      "deezer",
+      "amazon",
+    ];
+    for (const p of platforms) {
+      expect(PLAY_COUNT_STAT[p]).toBeDefined();
+    }
+  });
+});
+
+describe("getPlayCountStat", () => {
+  it("returns streams for spotify", () => {
+    const result = getPlayCountStat("spotify", {
+      streams: 100000,
+      monthly_listeners: 50000,
+    });
+    expect(result).toEqual({ key: "streams", value: 100000 });
+  });
+
+  it("returns views for youtube", () => {
+    const result = getPlayCountStat("youtube", { views: 5000, followers: 200 });
+    expect(result).toEqual({ key: "views", value: 5000 });
+  });
+
+  it("returns plays for soundcloud", () => {
+    const result = getPlayCountStat("soundcloud", { plays: 3000, followers: 100 });
+    expect(result).toEqual({ key: "plays", value: 3000 });
+  });
+
+  it("returns shazams for shazam", () => {
+    const result = getPlayCountStat("shazam", { shazams: 800 });
+    expect(result).toEqual({ key: "shazams", value: 800 });
+  });
+
+  it("falls back through candidates for unknown source", () => {
+    const result = getPlayCountStat("pandora", { plays: 42 });
+    expect(result).toEqual({ key: "plays", value: 42 });
+  });
+
+  it("returns null for empty stats", () => {
+    const result = getPlayCountStat("spotify", {});
+    expect(result).toBeNull();
   });
 });
