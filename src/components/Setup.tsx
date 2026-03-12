@@ -49,7 +49,8 @@ export function Setup({ onComplete }: SetupProps) {
       const info = await getArtistInfo(apiKey.trim(), id);
       setArtistName(info.name);
       setStep(3);
-    } catch {
+    } catch (err) {
+      console.error("Artist lookup failed:", err);
       setError(
         "Artist not found. Enter a valid Spotify ID or artist profile URL."
       );

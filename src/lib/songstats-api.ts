@@ -20,10 +20,10 @@ async function apiGet(
   });
 
   if (!response.ok) {
-    throw new Error(`API error ${response.status}: ${response.statusText}`);
+    throw new Error(`API error ${response.status}: ${await response.text()}`);
   }
 
-  return response.json();
+  return await response.json();
 }
 
 export async function getArtistInfo(
@@ -110,7 +110,10 @@ export async function fetchAllStats(
   const today = new Date().toISOString().slice(0, 10);
   const results: PlatformStats[] = [];
 
-  for (const source of sources) {
+  for (let i = 0; i < sources.length; i++) {
+    const source = sources[i];
+    // Delay between requests to avoid per-second rate limit on BASIC plan
+    if (i > 0) await new Promise((r) => setTimeout(r, 1200));
     try {
       const platformStats = await getArtistStats(
         api_key,
@@ -124,7 +127,7 @@ export async function fetchAllStats(
         await saveDailyStat(today, source, statType, value);
       }
     } catch (err) {
-      console.error(`Failed to fetch stats for ${source}:`, err);
+      console.error(`[songstats] FAILED to fetch stats for ${source}:`, err);
       await logApiCall("/artists/stats", source, 500);
     }
   }
@@ -136,27 +139,18 @@ export async function testApiKey(
   api_key: string
 ): Promise<{ valid: boolean; error?: string }> {
   try {
-    const url = new URL(`${RAPIDAPI_BASE_URL}/artists/info`);
-    url.searchParams.set("spotify_artist_id", "5k8aKKH3WU39dXEbRyUhGJ");
-
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        "x-rapidapi-key": api_key,
-        "x-rapidapi-host": RAPIDAPI_HOST,
-      },
+    await apiGet(api_key, "/artists/info", {
+      spotify_artist_id: "5k8aKKH3WU39dXEbRyUhGJ",
     });
-
-    if (response.ok) return { valid: true };
-
-    if (response.status === 403 || response.status === 401) {
+    return { valid: true };
+  } catch (err) {
+    const msg = String(err);
+    if (msg.includes("401") || msg.includes("403")) {
       return { valid: false, error: "invalid_key" };
     }
-    if (response.status === 429) {
+    if (msg.includes("429")) {
       return { valid: false, error: "rate_limit" };
     }
-    return { valid: false, error: `status_${response.status}` };
-  } catch (err) {
     return { valid: false, error: "network" };
   }
 }
