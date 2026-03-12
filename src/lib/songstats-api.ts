@@ -96,7 +96,9 @@ export const FIELD_MAP: Record<string, string> = {
   followers_total: "followers",
   subscribers_total: "followers",
   monthly_listeners_current: "monthly_listeners",
+  monthly_listeners: "monthly_listeners",
   monthly_audience_current: "monthly_audience",
+  monthly_audience: "monthly_audience",
   playlist_reach_current: "playlist_reach",
   playlists_current: "playlist_count",
   charts_total: "chart_entries",
@@ -113,7 +115,12 @@ export function mapStatFields(rawData: Record<string, number>): Record<string, n
   const stats: Record<string, number> = {};
   for (const [apiField, value] of Object.entries(rawData)) {
     const statType = FIELD_MAP[apiField];
-    if (statType) stats[statType] = value;
+    if (statType) {
+      // When multiple API fields map to the same stat type (e.g. views_total
+      // and video_views_total both → "views"), take the max to avoid
+      // inconsistent cumulative values that cause spikes in rolling averages.
+      stats[statType] = stats[statType] != null ? Math.max(stats[statType], value) : value;
+    }
   }
   return stats;
 }

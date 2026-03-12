@@ -21,6 +21,11 @@ describe("FIELD_MAP", () => {
   it("maps monthly_listeners_current to monthly_listeners", () => {
     expect(FIELD_MAP["monthly_listeners_current"]).toBe("monthly_listeners");
   });
+
+  it("maps bare monthly_audience for historic data", () => {
+    expect(FIELD_MAP["monthly_audience"]).toBe("monthly_audience");
+    expect(FIELD_MAP["monthly_audience_current"]).toBe("monthly_audience");
+  });
 });
 
 describe("mapStatFields", () => {
@@ -42,6 +47,22 @@ describe("mapStatFields", () => {
 
   it("returns empty object for empty input", () => {
     expect(mapStatFields({})).toEqual({});
+  });
+
+  it("takes the max when multiple fields map to the same stat type", () => {
+    const result = mapStatFields({
+      views_total: 1_000_000,
+      video_views_total: 800_000,
+    });
+    expect(result).toEqual({ views: 1_000_000 });
+  });
+
+  it("takes the max regardless of field order", () => {
+    const result = mapStatFields({
+      video_views_total: 800_000,
+      views_total: 1_000_000,
+    });
+    expect(result).toEqual({ views: 1_000_000 });
   });
 
   it("handles all field mappings", () => {
