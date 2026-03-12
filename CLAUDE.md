@@ -131,6 +131,10 @@ Frontend communicates with backend via Tauri's IPC (`invoke`). API calls go thro
 - Prettier is configured in `.prettierrc`. It controls all formatting — do not fight it with manual style choices.
 - Clippy warnings should be treated as errors. Fix them, don't suppress with `#[allow(...)]` unless there's a documented reason.
 
+### Building
+
+- After every code change, rebuild the app with `npx tauri build --bundles app` to verify the production build succeeds.
+
 ### General
 - The app identifier is `com.streamingstats.app`. Don't change it without updating all platform configs.
 - `.env` files are gitignored. Never commit API keys or secrets.
