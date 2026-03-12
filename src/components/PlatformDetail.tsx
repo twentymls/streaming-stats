@@ -56,22 +56,27 @@ export function PlatformDetail({
     return historicStats.filter((s) => s.date >= cutoff);
   }, [historicStats, period]);
 
-  // Determine the best stat type for the trend chart
-  // For Spotify, prefer monthly_listeners if historic data exists for it
+  // Preferred "audience" stat for the trend chart per platform
+  // Falls back to the play-count stat if preferred stat has no historic data
+  const TREND_STAT_PREFERENCE: Record<string, string[]> = {
+    spotify: ["monthly_listeners"],
+    youtube: ["monthly_audience", "followers"],
+  };
+
+  const preferredStats = TREND_STAT_PREFERENCE[source] ?? [];
   const trendStatType =
-    source === "spotify" && filteredHistoric.some((s) => s.stat_type === "monthly_listeners")
-      ? "monthly_listeners"
-      : stats.streams != null
-        ? "streams"
-        : stats.views != null
-          ? "views"
-          : stats.creates != null
-            ? "creates"
-            : stats.shazams != null
-              ? "shazams"
-              : stats.plays != null
-                ? "plays"
-                : "streams";
+    preferredStats.find((st) => filteredHistoric.some((s) => s.stat_type === st)) ??
+    (stats.streams != null
+      ? "streams"
+      : stats.views != null
+        ? "views"
+        : stats.creates != null
+          ? "creates"
+          : stats.shazams != null
+            ? "shazams"
+            : stats.plays != null
+              ? "plays"
+              : "streams");
 
   return (
     <div className="platform-detail">

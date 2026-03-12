@@ -27,6 +27,7 @@ export const DSP_STAT_LABELS: Record<string, string> = {
   shazams: "Shazam",
   followers: "Followers",
   monthly_listeners: "Monthly Listeners",
+  monthly_audience: "Monthly Audience",
   playlist_reach: "Playlist Reach",
   playlist_count: "Playlists",
   chart_entries: "Chart Entries",

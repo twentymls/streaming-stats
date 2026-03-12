@@ -145,4 +145,48 @@ describe("PlatformDetail", () => {
     // Only one chart — playCountKey (views) === trendStatType (views)
     expect(charts).toHaveLength(1);
   });
+
+  it("renders YouTube with followers data: 2 charts (Followers + Daily Views)", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    render(
+      <PlatformDetail
+        {...defaultProps}
+        source="youtube"
+        stats={{ views: 5000, followers: 200 }}
+        historicStats={[
+          { date: yesterday, source: "youtube", stat_type: "followers", value: 190 },
+          { date: today, source: "youtube", stat_type: "followers", value: 200 },
+          { date: yesterday, source: "youtube", stat_type: "views", value: 4000 },
+          { date: today, source: "youtube", stat_type: "views", value: 5000 },
+        ]}
+      />
+    );
+    const charts = screen.getAllByTestId("trend-chart");
+    expect(charts).toHaveLength(2);
+    expect(charts[0]).toHaveTextContent("Followers over time");
+    expect(charts[1]).toHaveTextContent("Daily Views (14d avg)");
+  });
+
+  it("renders YouTube with monthly_audience data: 2 charts (Monthly Audience + Daily Views)", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    render(
+      <PlatformDetail
+        {...defaultProps}
+        source="youtube"
+        stats={{ views: 5000, monthly_audience: 3000, followers: 200 }}
+        historicStats={[
+          { date: yesterday, source: "youtube", stat_type: "monthly_audience", value: 2800 },
+          { date: today, source: "youtube", stat_type: "monthly_audience", value: 3000 },
+          { date: yesterday, source: "youtube", stat_type: "views", value: 4000 },
+          { date: today, source: "youtube", stat_type: "views", value: 5000 },
+        ]}
+      />
+    );
+    const charts = screen.getAllByTestId("trend-chart");
+    expect(charts).toHaveLength(2);
+    expect(charts[0]).toHaveTextContent("Monthly Audience over time");
+    expect(charts[1]).toHaveTextContent("Daily Views (14d avg)");
+  });
 });

@@ -3,7 +3,7 @@ import { RAPIDAPI_BASE_URL, RAPIDAPI_HOST } from "./constants";
 import { ArtistInfo, PlatformStats, TopTrack, TopCurator } from "./types";
 import { logApiCall, saveDailyStat, saveTopTracks, saveTopCurators } from "./database";
 
-export const TOP_TRACKS_SOURCES = ["spotify", "tiktok"];
+export const TOP_TRACKS_SOURCES = ["spotify", "tiktok", "youtube"];
 export const TOP_CURATORS_SOURCES = ["tiktok"];
 
 async function apiGet(
@@ -96,6 +96,7 @@ export const FIELD_MAP: Record<string, string> = {
   followers_total: "followers",
   subscribers_total: "followers",
   monthly_listeners_current: "monthly_listeners",
+  monthly_audience_current: "monthly_audience",
   playlist_reach_current: "playlist_reach",
   playlists_current: "playlist_count",
   charts_total: "chart_entries",
