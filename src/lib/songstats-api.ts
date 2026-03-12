@@ -3,7 +3,7 @@ import { RAPIDAPI_BASE_URL, RAPIDAPI_HOST } from "./constants";
 import { ArtistInfo, PlatformStats, TopTrack, TopCurator } from "./types";
 import { logApiCall, saveDailyStat, saveTopTracks, saveTopCurators } from "./database";
 
-export const TOP_TRACKS_SOURCES = ["spotify", "tiktok", "youtube"];
+export const TOP_TRACKS_SOURCES = ["spotify", "tiktok", "youtube", "apple_music", "shazam", "soundcloud"];
 export const TOP_CURATORS_SOURCES = ["tiktok"];
 
 async function apiGet(
@@ -84,31 +84,78 @@ export async function getArtistStats(
   await logApiCall("/artists/stats", source, 200);
 
   const entry = data.stats?.find((s) => s.source === source);
+  if (entry?.data) {
+    const unmapped = Object.keys(entry.data).filter((k) => !FIELD_MAP[k]);
+    if (unmapped.length > 0) {
+      console.warn(`[songstats] Unmapped fields for ${source}:`, unmapped);
+    }
+  }
   const stats = entry?.data ? mapStatFields(entry.data) : {};
 
   return { source, stats };
 }
 
 export const FIELD_MAP: Record<string, string> = {
+  // Core play counts
   streams_total: "streams",
   views_total: "views",
   video_views_total: "views",
+  plays_total: "plays",
+  creates_total: "creates",
+  shazams_total: "shazams",
+
+  // Followers / subscribers
   followers_total: "followers",
   subscribers_total: "followers",
+
+  // Audience metrics
   monthly_listeners_current: "monthly_listeners",
   monthly_listeners: "monthly_listeners",
   monthly_audience_current: "monthly_audience",
   monthly_audience: "monthly_audience",
+  popularity_current: "popularity",
+
+  // Playlists
   playlist_reach_current: "playlist_reach",
+  playlist_reach: "playlist_reach",
+  playlist_reach_total: "playlist_reach_total",
   playlists_current: "playlist_count",
+  playlists_total: "playlists_total",
+  playlists_editorial_current: "editorial_playlists",
+  playlists_editorial_total: "editorial_playlists_total",
+
+  // Charts
   charts_total: "chart_entries",
+  charts_current: "current_charts",
+  charted_tracks_current: "charted_tracks",
+  charted_tracks_total: "charted_tracks_total",
+  charted_cities_total: "charted_cities",
+  charted_countries_total: "charted_countries",
+
+  // Engagement
   likes_total: "likes",
   video_likes_total: "likes",
-  plays_total: "plays",
-  creates_total: "creates",
-  shazams_total: "shazams",
-  videos_total: "videos",
+  video_comments_total: "video_comments",
+  short_likes_total: "short_likes",
+  short_comments_total: "short_comments",
+  comments_total: "comments",
+  shares_total: "shares",
+  reposts_total: "reposts",
   favorites_total: "favorites",
+  engagement_rate_total: "engagement_rate",
+  video_engagement_rate_total: "video_engagement",
+  short_engagement_rate_total: "short_engagement",
+
+  // YouTube-specific
+  videos_total: "videos",
+  shorts_total: "shorts",
+  channel_views_total: "channel_views",
+  short_views_total: "short_views",
+  creator_reach_total: "creator_reach",
+
+  // TikTok-specific
+  profile_likes_total: "profile_likes",
+  profile_videos_total: "profile_videos",
 };
 
 export function mapStatFields(rawData: Record<string, number>): Record<string, number> {
@@ -238,7 +285,9 @@ const TOP_TRACKS_METRIC: Record<string, string> = {
   spotify: "streams",
   tiktok: "videos",
   youtube: "views",
+  apple_music: "playlists",
   shazam: "shazams",
+  soundcloud: "streams",
 };
 
 export async function fetchTopTracks(

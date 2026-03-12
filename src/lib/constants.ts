@@ -21,20 +21,58 @@ export const DSP_NAMES: Record<string, string> = {
 };
 
 export const DSP_STAT_LABELS: Record<string, string> = {
+  // Core play counts
   streams: "Streams",
   views: "Views",
+  plays: "Plays",
   creates: "Creations",
   shazams: "Shazam",
+
+  // Followers & audience
   followers: "Followers",
   monthly_listeners: "Monthly Listeners",
   monthly_audience: "Monthly Audience",
+  popularity: "Popularity",
+
+  // Playlists
   playlist_reach: "Playlist Reach",
+  playlist_reach_total: "Playlist Reach (All Time)",
   playlist_count: "Playlists",
+  playlists_total: "Playlists (All Time)",
+  editorial_playlists: "Editorial Playlists",
+  editorial_playlists_total: "Editorial Playlists (All Time)",
+
+  // Charts
   chart_entries: "Chart Entries",
+  current_charts: "Current Charts",
+  charted_tracks: "Charted Tracks",
+  charted_tracks_total: "Charted Tracks (All Time)",
+  charted_cities: "Charted Cities",
+  charted_countries: "Charted Countries",
+
+  // Engagement
   likes: "Likes",
-  plays: "Plays",
-  videos: "Videos",
+  video_comments: "Video Comments",
+  short_likes: "Short Likes",
+  short_comments: "Short Comments",
+  comments: "Comments",
+  shares: "Shares",
+  reposts: "Reposts",
   favorites: "Favorites",
+  engagement_rate: "Engagement Rate",
+  video_engagement: "Video Engagement Rate",
+  short_engagement: "Short Engagement Rate",
+
+  // YouTube-specific
+  videos: "Videos",
+  shorts: "Shorts",
+  channel_views: "Channel Views",
+  short_views: "Short Views",
+  creator_reach: "Creator Reach",
+
+  // TikTok-specific
+  profile_likes: "Profile Likes",
+  profile_videos: "Profile Videos",
 };
 
 export const DEFAULT_SOURCES = [

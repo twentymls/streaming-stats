@@ -61,6 +61,7 @@ export function PlatformDetail({
   const TREND_STAT_PREFERENCE: Record<string, string[]> = {
     spotify: ["monthly_listeners"],
     youtube: ["monthly_audience", "followers"],
+    apple_music: ["playlist_reach"],
   };
 
   const preferredStats = TREND_STAT_PREFERENCE[source] ?? [];

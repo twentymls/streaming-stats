@@ -189,4 +189,26 @@ describe("PlatformDetail", () => {
     expect(charts[0]).toHaveTextContent("Monthly Audience over time");
     expect(charts[1]).toHaveTextContent("Daily Views (14d avg)");
   });
+
+  it("renders Apple Music with playlist_reach data: 2 charts (Playlist Reach + Daily Streams)", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    render(
+      <PlatformDetail
+        {...defaultProps}
+        source="apple_music"
+        stats={{ streams: 80000, playlist_reach: 12000, playlist_count: 50 }}
+        historicStats={[
+          { date: yesterday, source: "apple_music", stat_type: "playlist_reach", value: 11000 },
+          { date: today, source: "apple_music", stat_type: "playlist_reach", value: 12000 },
+          { date: yesterday, source: "apple_music", stat_type: "streams", value: 70000 },
+          { date: today, source: "apple_music", stat_type: "streams", value: 80000 },
+        ]}
+      />
+    );
+    const charts = screen.getAllByTestId("trend-chart");
+    expect(charts).toHaveLength(2);
+    expect(charts[0]).toHaveTextContent("Playlist Reach over time");
+    expect(charts[1]).toHaveTextContent("Daily Streams (14d avg)");
+  });
 });

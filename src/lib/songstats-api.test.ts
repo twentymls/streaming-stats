@@ -26,6 +26,30 @@ describe("FIELD_MAP", () => {
     expect(FIELD_MAP["monthly_audience"]).toBe("monthly_audience");
     expect(FIELD_MAP["monthly_audience_current"]).toBe("monthly_audience");
   });
+
+  it("maps cross-platform playlist and chart fields", () => {
+    expect(FIELD_MAP["playlists_total"]).toBe("playlists_total");
+    expect(FIELD_MAP["playlists_editorial_current"]).toBe("editorial_playlists");
+    expect(FIELD_MAP["charts_current"]).toBe("current_charts");
+    expect(FIELD_MAP["charted_tracks_current"]).toBe("charted_tracks");
+    expect(FIELD_MAP["charted_countries_total"]).toBe("charted_countries");
+  });
+
+  it("maps YouTube-specific fields", () => {
+    expect(FIELD_MAP["video_comments_total"]).toBe("video_comments");
+    expect(FIELD_MAP["shorts_total"]).toBe("shorts");
+    expect(FIELD_MAP["channel_views_total"]).toBe("channel_views");
+    expect(FIELD_MAP["short_views_total"]).toBe("short_views");
+    expect(FIELD_MAP["creator_reach_total"]).toBe("creator_reach");
+  });
+
+  it("maps TikTok and SoundCloud engagement fields", () => {
+    expect(FIELD_MAP["comments_total"]).toBe("comments");
+    expect(FIELD_MAP["shares_total"]).toBe("shares");
+    expect(FIELD_MAP["reposts_total"]).toBe("reposts");
+    expect(FIELD_MAP["engagement_rate_total"]).toBe("engagement_rate");
+    expect(FIELD_MAP["profile_likes_total"]).toBe("profile_likes");
+  });
 });
 
 describe("mapStatFields", () => {
