@@ -11,7 +11,8 @@ Spotify, Apple Music, YouTube, TikTok, Deezer, Amazon Music, Shazam, SoundCloud
 1. **Setup** — Enter your RapidAPI key and a Spotify artist ID/URL. The app validates both before proceeding.
 2. **Daily tracking** — The app automatically fetches stats on launch (max 2x/day, at least 8 hours apart). All data is stored locally in a SQLite database.
 3. **Dashboard** — View current stats per platform, trend charts over time, and a distribution breakdown. Filter by 7/30/60/90 day periods.
-4. **Backfill** — One-time download of up to 90 days of historical data from Songstats (Settings > Backfill historic data).
+4. **Platform detail** — Click any platform card to see full stats, top tracks, trend charts, and (for TikTok) top curators. All detail data is served from the local cache — no API calls on view.
+5. **Backfill** — One-time download of up to 90 days of historical data from Songstats (Settings > Backfill historic data).
 
 ### Data & Privacy
 
@@ -23,7 +24,7 @@ No data is sent anywhere except the Songstats API calls to fetch stats.
 
 ### API Usage
 
-The app uses the Songstats API via RapidAPI. The **BASIC plan** allows 500 requests/month. Each "Update" uses ~9 API calls (1 artist info + 8 platforms). A backfill uses ~8 calls. The dashboard shows your current monthly usage.
+The app uses the Songstats API via RapidAPI. The **BASIC plan** allows 500 requests/month. The first update of the day uses ~11 API calls (8 platform stats + 2 top tracks + 1 top curators). The second update uses only ~8 calls (platform stats only). Top tracks and curators are cached in the local DB so detail views never make API calls. A backfill uses ~8 calls. The dashboard shows your current monthly usage.
 
 A 1.2 second delay is added between platform requests to stay within the per-second rate limit.
 
@@ -74,11 +75,12 @@ streaming-stats/
 │   │   ├── Setup.tsx           # 3-step onboarding flow
 │   │   ├── Dashboard.tsx       # Main view with stats, charts, auto-fetch
 │   │   ├── PlatformCard.tsx    # Individual platform stat card
+│   │   ├── PlatformDetail.tsx  # Detail view with stats, top tracks, curators
 │   │   ├── StatsChart.tsx      # Trend line chart + distribution doughnut
 │   │   └── Settings.tsx        # Config, platform toggles, backfill button
 │   ├── lib/
 │   │   ├── songstats-api.ts    # Songstats API integration
-│   │   ├── database.ts         # SQLite operations (daily_stats, api_calls_log)
+│   │   ├── database.ts         # SQLite operations (daily_stats, api_calls_log, top_tracks, top_curators)
 │   │   ├── settings.ts         # Tauri store for app settings
 │   │   ├── constants.ts        # Platform names, colors, stat labels
 │   │   └── types.ts            # TypeScript interfaces
