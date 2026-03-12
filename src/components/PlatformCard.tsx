@@ -16,11 +16,7 @@ export function PlatformCard({ source, stats, onClick }: PlatformCardProps) {
   const mainKey =
     entries.find(
       ([k]) =>
-        k === "streams" ||
-        k === "views" ||
-        k === "creates" ||
-        k === "shazams" ||
-        k === "plays"
+        k === "streams" || k === "views" || k === "creates" || k === "shazams" || k === "plays"
     )?.[0] ?? entries[0]?.[0];
   const mainValue = mainKey ? stats[mainKey] : 0;
 
@@ -35,9 +31,7 @@ export function PlatformCard({ source, stats, onClick }: PlatformCardProps) {
         <span className="platform-name">{name}</span>
       </div>
       <div className="platform-main-stat">{formatNumber(mainValue)}</div>
-      <div className="platform-main-label">
-        {DSP_STAT_LABELS[mainKey] ?? mainKey}
-      </div>
+      <div className="platform-main-label">{DSP_STAT_LABELS[mainKey] ?? mainKey}</div>
       <div className="platform-sub-stats">
         {entries
           .filter(([k]) => k !== mainKey)
@@ -45,9 +39,7 @@ export function PlatformCard({ source, stats, onClick }: PlatformCardProps) {
           .map(([key, value]) => (
             <div key={key} className="sub-stat">
               <span className="sub-stat-value">{formatNumber(value)}</span>
-              <span className="sub-stat-label">
-                {DSP_STAT_LABELS[key] ?? key}
-              </span>
+              <span className="sub-stat-label">{DSP_STAT_LABELS[key] ?? key}</span>
             </div>
           ))}
       </div>

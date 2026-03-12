@@ -4,9 +4,7 @@ import { PlatformDetail } from "./PlatformDetail";
 
 // Mock StatsChart — Chart.js doesn't work in jsdom
 vi.mock("./StatsChart", () => ({
-  TrendChart: ({ title }: { title: string }) => (
-    <div data-testid="trend-chart">{title}</div>
-  ),
+  TrendChart: ({ title }: { title: string }) => <div data-testid="trend-chart">{title}</div>,
 }));
 
 const defaultProps = {
@@ -35,9 +33,7 @@ describe("PlatformDetail", () => {
 
   it("renders 'not available' when no top tracks", () => {
     render(<PlatformDetail {...defaultProps} />);
-    expect(
-      screen.getByText(/top tracks not available/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/top tracks not available/i)).toBeInTheDocument();
   });
 
   it("renders top tracks list", () => {
@@ -75,9 +71,7 @@ describe("PlatformDetail", () => {
     render(
       <PlatformDetail
         {...defaultProps}
-        historicStats={[
-          { date: today, source: "spotify", stat_type: "streams", value: 1000 },
-        ]}
+        historicStats={[{ date: today, source: "spotify", stat_type: "streams", value: 1000 }]}
       />
     );
     expect(screen.getByText("7d")).toBeInTheDocument();

@@ -48,16 +48,12 @@ export function TrendChart({ stats, title, statType }: StatsChartProps) {
 
   const datasets = sources
     .map((source) => {
-      const sourceStats = stats.filter(
-        (s) => s.source === source && s.stat_type === statType
-      );
+      const sourceStats = stats.filter((s) => s.source === source && s.stat_type === statType);
       if (sourceStats.length === 0) return null;
 
       return {
         label: DSP_NAMES[source] ?? source,
-        data: dates.map(
-          (date) => sourceStats.find((s) => s.date === date)?.value ?? null
-        ),
+        data: dates.map((date) => sourceStats.find((s) => s.date === date)?.value ?? null),
         borderColor: DSP_COLORS[source] ?? "#888",
         backgroundColor: (DSP_COLORS[source] ?? "#888") + "20",
         tension: 0.3,
@@ -106,10 +102,7 @@ interface DistributionChartProps {
   title: string;
 }
 
-export function DistributionChart({
-  platformStats,
-  title,
-}: DistributionChartProps) {
+export function DistributionChart({ platformStats, title }: DistributionChartProps) {
   const filtered = platformStats.filter((p) => p.total > 0);
 
   return (
@@ -121,9 +114,7 @@ export function DistributionChart({
           datasets: [
             {
               data: filtered.map((p) => p.total),
-              backgroundColor: filtered.map(
-                (p) => DSP_COLORS[p.source] ?? "#888"
-              ),
+              backgroundColor: filtered.map((p) => DSP_COLORS[p.source] ?? "#888"),
               borderWidth: 0,
             },
           ],

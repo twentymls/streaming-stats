@@ -16,4 +16,3 @@ mod tests {
         assert_eq!(result.unwrap(), "Database initialized");
     }
 }
-

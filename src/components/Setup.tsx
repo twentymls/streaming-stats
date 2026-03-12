@@ -51,9 +51,7 @@ export function Setup({ onComplete }: SetupProps) {
       setStep(3);
     } catch (err) {
       console.error("Artist lookup failed:", err);
-      setError(
-        "Artist not found. Enter a valid Spotify ID or artist profile URL."
-      );
+      setError("Artist not found. Enter a valid Spotify ID or artist profile URL.");
     }
     setLoading(false);
   };
@@ -96,7 +94,9 @@ export function Setup({ onComplete }: SetupProps) {
                   className="link-text clickable"
                   onClick={(e) => {
                     e.preventDefault();
-                    open("https://rapidapi.com/songstats-app-songstats-app-default/api/songstats/pricing");
+                    open(
+                      "https://rapidapi.com/songstats-app-songstats-app-default/api/songstats/pricing"
+                    );
                   }}
                 >
                   Open the Songstats API page on RapidAPI
@@ -104,9 +104,8 @@ export function Setup({ onComplete }: SetupProps) {
                 and subscribe to the free plan.
               </li>
               <li>
-                Once subscribed, look for the{" "}
-                <strong>X-RapidAPI-Key</strong> field on the page — that's your
-                API key.
+                Once subscribed, look for the <strong>X-RapidAPI-Key</strong> field on the page —
+                that's your API key.
               </li>
               <li>Copy it and paste it below.</li>
             </ol>
@@ -132,9 +131,7 @@ export function Setup({ onComplete }: SetupProps) {
         {step === 2 && (
           <div className="setup-step">
             <h2>Your Spotify Profile</h2>
-            <p>
-              Paste your Spotify artist profile link, or just the Artist ID.
-            </p>
+            <p>Paste your Spotify artist profile link, or just the Artist ID.</p>
             <input
               type="text"
               placeholder="https://open.spotify.com/artist/... or the ID"
@@ -160,16 +157,11 @@ export function Setup({ onComplete }: SetupProps) {
             <div className="artist-confirm">
               <p className="artist-name-display">{artistName}</p>
               <p>
-                Your stats will be tracked across 8 platforms: Spotify,
-                Apple Music, YouTube, TikTok, Deezer, Amazon Music, Shazam,
-                SoundCloud.
+                Your stats will be tracked across 8 platforms: Spotify, Apple Music, YouTube,
+                TikTok, Deezer, Amazon Music, Shazam, SoundCloud.
               </p>
             </div>
-            <button
-              onClick={handleFinish}
-              disabled={loading}
-              className="setup-button primary"
-            >
+            <button onClick={handleFinish} disabled={loading} className="setup-button primary">
               {loading ? "Saving..." : "Let's go!"}
             </button>
           </div>

@@ -9,11 +9,9 @@ export async function loadSettings(): Promise<AppSettings | null> {
   const apiKey = await store.get<string>("api_key");
   if (!apiKey) return null;
 
-  const spotifyArtistId =
-    (await store.get<string>("spotify_artist_id")) ?? "";
+  const spotifyArtistId = (await store.get<string>("spotify_artist_id")) ?? "";
   const artistName = (await store.get<string>("artist_name")) ?? "";
-  const enabledSources =
-    (await store.get<string[]>("enabled_sources")) ?? DEFAULT_SOURCES;
+  const enabledSources = (await store.get<string[]>("enabled_sources")) ?? DEFAULT_SOURCES;
   const fetchHour = (await store.get<number>("fetch_hour")) ?? 6;
 
   return {
@@ -46,10 +44,8 @@ export async function getAutoFetchState(): Promise<{
   fetchCountToday: number;
 }> {
   const store = await load(STORE_NAME);
-  const lastFetchIso =
-    (await store.get<string>("last_fetch_iso")) ?? null;
-  const fetchCountToday =
-    (await store.get<number>("fetch_count_today")) ?? 0;
+  const lastFetchIso = (await store.get<string>("last_fetch_iso")) ?? null;
+  const fetchCountToday = (await store.get<number>("fetch_count_today")) ?? 0;
 
   // Reset counter if the stored date is not today
   const today = new Date().toLocaleDateString("sv"); // yyyy-MM-dd local

@@ -19,7 +19,7 @@ import {
   TOP_CURATORS_SOURCES,
 } from "../lib/songstats-api";
 import { loadSettings, getAutoFetchState, recordFetch } from "../lib/settings";
-import { DailyStat, PlatformStats, AppSettings, TopTrack, TopCurator } from "../lib/types";
+import type { DailyStat, AppSettings, TopTrack, TopCurator } from "../lib/types";
 import { DSP_NAMES } from "../lib/constants";
 import { format, subDays } from "date-fns";
 
@@ -29,9 +29,7 @@ interface DashboardProps {
 
 export function Dashboard({ onReset }: DashboardProps) {
   const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [latestStats, setLatestStats] = useState<
-    Map<string, Record<string, number>>
-  >(new Map());
+  const [latestStats, setLatestStats] = useState<Map<string, Record<string, number>>>(new Map());
   const [historicStats, setHistoricStats] = useState<DailyStat[]>([]);
   const [apiCount, setApiCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -85,11 +83,7 @@ export function Dashboard({ onReset }: DashboardProps) {
     setLoading(true);
     try {
       const isFirstFetchToday = fetchesToday === 0;
-      await fetchAllStats(
-        settings.api_key,
-        settings.spotify_artist_id,
-        settings.enabled_sources
-      );
+      await fetchAllStats(settings.api_key, settings.spotify_artist_id, settings.enabled_sources);
       if (isFirstFetchToday) {
         await fetchAndCacheTopContent(
           settings.api_key,
@@ -112,16 +106,9 @@ export function Dashboard({ onReset }: DashboardProps) {
     setLoading(true);
     try {
       const isFirstFetchToday = fetchesToday === 0;
-      const info = await getArtistInfo(
-        settings.api_key,
-        settings.spotify_artist_id
-      );
+      const info = await getArtistInfo(settings.api_key, settings.spotify_artist_id);
       setArtistName(info.name);
-      await fetchAllStats(
-        settings.api_key,
-        settings.spotify_artist_id,
-        settings.enabled_sources
-      );
+      await fetchAllStats(settings.api_key, settings.spotify_artist_id, settings.enabled_sources);
       if (isFirstFetchToday) {
         await fetchAndCacheTopContent(
           settings.api_key,
@@ -157,8 +144,7 @@ export function Dashboard({ onReset }: DashboardProps) {
       if (!lastFetchIso || lastDate !== today) {
         shouldFetch = true;
       } else if (effectiveCount < 2) {
-        const hoursSinceLast =
-          (Date.now() - new Date(lastFetchIso).getTime()) / (1000 * 60 * 60);
+        const hoursSinceLast = (Date.now() - new Date(lastFetchIso).getTime()) / (1000 * 60 * 60);
         if (hoursSinceLast >= 8) {
           shouldFetch = true;
         }
@@ -169,10 +155,7 @@ export function Dashboard({ onReset }: DashboardProps) {
         try {
           const hasData = (await getLatestStats()).length > 0;
           if (!hasData) {
-            const info = await getArtistInfo(
-              settings.api_key,
-              settings.spotify_artist_id
-            );
+            const info = await getArtistInfo(settings.api_key, settings.spotify_artist_id);
             setArtistName(info.name);
             // One-time backfill of historic data on first launch
             await fetchHistoricStats(
@@ -211,20 +194,22 @@ export function Dashboard({ onReset }: DashboardProps) {
 
   // Re-check auto-fetch eligibility every 30 minutes while app is open
   useEffect(() => {
-    const interval = setInterval(async () => {
-      const { lastFetchIso, fetchCountToday } = await getAutoFetchState();
-      const today = new Date().toLocaleDateString("sv");
-      const lastDate = lastFetchIso?.slice(0, 10);
-      const effectiveCount = lastDate === today ? fetchCountToday : 0;
+    const interval = setInterval(
+      async () => {
+        const { lastFetchIso, fetchCountToday } = await getAutoFetchState();
+        const today = new Date().toLocaleDateString("sv");
+        const lastDate = lastFetchIso?.slice(0, 10);
+        const effectiveCount = lastDate === today ? fetchCountToday : 0;
 
-      if (effectiveCount >= 2 || !lastFetchIso) return;
+        if (effectiveCount >= 2 || !lastFetchIso) return;
 
-      const hoursSinceLast =
-        (Date.now() - new Date(lastFetchIso).getTime()) / (1000 * 60 * 60);
-      if (hoursSinceLast >= 8) {
-        handleFetch();
-      }
-    }, 30 * 60 * 1000);
+        const hoursSinceLast = (Date.now() - new Date(lastFetchIso).getTime()) / (1000 * 60 * 60);
+        if (hoursSinceLast >= 8) {
+          handleFetch();
+        }
+      },
+      30 * 60 * 1000
+    );
 
     return () => clearInterval(interval);
   }, [handleFetch]);
@@ -248,9 +233,7 @@ export function Dashboard({ onReset }: DashboardProps) {
   }
 
   if (selectedPlatform && settings) {
-    const platformHistoric = historicStats.filter(
-      (s) => s.source === selectedPlatform
-    );
+    const platformHistoric = historicStats.filter((s) => s.source === selectedPlatform);
     return (
       <PlatformDetail
         source={selectedPlatform}
@@ -264,37 +247,26 @@ export function Dashboard({ onReset }: DashboardProps) {
   }
 
   // Prepare distribution data
-  const distribution = Array.from(latestStats.entries()).map(
-    ([source, stats]) => ({
-      source,
-      total:
-        stats.streams ?? stats.views ?? stats.creates ?? stats.shazams ?? 0,
-    })
-  );
+  const distribution = Array.from(latestStats.entries()).map(([source, stats]) => ({
+    source,
+    total: stats.streams ?? stats.views ?? stats.creates ?? stats.shazams ?? 0,
+  }));
 
   return (
     <div className="dashboard">
       <header className="dashboard-header">
         <div className="header-left">
           <h1>{artistName || "Streaming Stats"}</h1>
-          {lastUpdate && (
-            <span className="last-update">Last update: {lastUpdate}</span>
-          )}
+          {lastUpdate && <span className="last-update">Last update: {lastUpdate}</span>}
         </div>
         <div className="header-right">
-          <div className="api-badge">
-            API: {apiCount}/500
-          </div>
+          <div className="api-badge">API: {apiCount}/500</div>
           <button
             onClick={latestStats.size === 0 ? handleFetchWithInfo : handleFetch}
             disabled={loading || fetchesToday >= 2}
             className="btn btn-primary"
           >
-            {loading
-              ? "Updating..."
-              : fetchesToday >= 2
-                ? "Done for today"
-                : "Update"}
+            {loading ? "Updating..." : fetchesToday >= 2 ? "Done for today" : "Update"}
           </button>
           <button onClick={() => setShowSettings(true)} className="btn">
             Settings
@@ -305,9 +277,7 @@ export function Dashboard({ onReset }: DashboardProps) {
       {latestStats.size === 0 ? (
         <div className="empty-state">
           <h2>No data yet</h2>
-          <p>
-            Click "Update" to fetch your first stats from all platforms.
-          </p>
+          <p>Click "Update" to fetch your first stats from all platforms.</p>
         </div>
       ) : (
         <>
@@ -327,9 +297,7 @@ export function Dashboard({ onReset }: DashboardProps) {
               .map((source) => (
                 <div key={source} className="platform-card empty">
                   <div className="platform-header">
-                    <span className="platform-name">
-                      {DSP_NAMES[source] ?? source}
-                    </span>
+                    <span className="platform-name">{DSP_NAMES[source] ?? source}</span>
                   </div>
                   <div className="platform-main-stat">-</div>
                   <div className="platform-main-label">No data</div>
@@ -357,10 +325,7 @@ export function Dashboard({ onReset }: DashboardProps) {
                   title="Streams / Views over time"
                   statType="streams"
                 />
-                <DistributionChart
-                  platformStats={distribution}
-                  title="Distribution by platform"
-                />
+                <DistributionChart platformStats={distribution} title="Distribution by platform" />
               </div>
             </section>
           )}

@@ -40,10 +40,7 @@ async function apiGet(
   throw new Error(`API error 429: rate limited after 3 retries`);
 }
 
-export async function getArtistInfo(
-  api_key: string,
-  spotifyArtistId: string
-): Promise<ArtistInfo> {
+export async function getArtistInfo(api_key: string, spotifyArtistId: string): Promise<ArtistInfo> {
   const data = (await apiGet(api_key, "/artists/info", {
     spotify_artist_id: spotifyArtistId,
   })) as {
@@ -126,9 +123,7 @@ export async function fetchHistoricStats(
   sources: string[],
   days: number = 90
 ): Promise<number> {
-  const startDate = new Date(Date.now() - days * 86400000)
-    .toISOString()
-    .slice(0, 10);
+  const startDate = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
   let savedCount = 0;
 
   for (let i = 0; i < sources.length; i++) {
@@ -144,7 +139,9 @@ export async function fetchHistoricStats(
       await logApiCall("/artists/historic_stats", source, 200);
 
       // Response format: { stats: [{ source, data: { history: [{ date, ...fields }] } }] }
-      const raw = data as { stats?: Array<{ source: string; data?: { history?: Array<Record<string, unknown>> } }> };
+      const raw = data as {
+        stats?: Array<{ source: string; data?: { history?: Array<Record<string, unknown>> } }>;
+      };
       const match = raw.stats?.find((s) => s.source === source);
       const entries = match?.data?.history ?? [];
 
@@ -160,10 +157,7 @@ export async function fetchHistoricStats(
         }
       }
     } catch (err) {
-      console.error(
-        `[songstats] FAILED to fetch historic stats for ${source}:`,
-        err
-      );
+      console.error(`[songstats] FAILED to fetch historic stats for ${source}:`, err);
       await logApiCall("/artists/historic_stats", source, 500);
     }
   }
@@ -184,11 +178,7 @@ export async function fetchAllStats(
     // Delay between requests to avoid per-second rate limit on BASIC plan
     if (i > 0) await new Promise((r) => setTimeout(r, 1200));
     try {
-      const platformStats = await getArtistStats(
-        api_key,
-        spotifyArtistId,
-        source
-      );
+      const platformStats = await getArtistStats(api_key, spotifyArtistId, source);
       results.push(platformStats);
 
       // Save each stat to the database
@@ -272,7 +262,11 @@ export async function fetchTopTracks(
     return tracks.map((t) => ({
       title: String(t.track_name ?? t.title ?? t.name ?? "Unknown"),
       streams: Number(t.rank_value ?? t.streams ?? t.streams_total ?? t.plays ?? t.views ?? 0),
-      artwork_url: t.image_url ? String(t.image_url) : t.artwork_url ? String(t.artwork_url) : undefined,
+      artwork_url: t.image_url
+        ? String(t.image_url)
+        : t.artwork_url
+          ? String(t.artwork_url)
+          : undefined,
     }));
   } catch (err) {
     console.error(`[songstats] FAILED to fetch top tracks for ${source}:`, err);
@@ -316,9 +310,7 @@ export async function fetchAndCacheTopContent(
   }
 }
 
-export async function testApiKey(
-  api_key: string
-): Promise<{ valid: boolean; error?: string }> {
+export async function testApiKey(api_key: string): Promise<{ valid: boolean; error?: string }> {
   try {
     await apiGet(api_key, "/artists/info", {
       spotify_artist_id: "5k8aKKH3WU39dXEbRyUhGJ",

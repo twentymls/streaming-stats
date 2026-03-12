@@ -25,8 +25,7 @@ describe("database", () => {
       // First calls are migrations (from getDb -> runMigrations), last call is the actual insert
       const insertCall = mockExecute.mock.calls.find(
         (call: unknown[]) =>
-          typeof call[0] === "string" &&
-          call[0].includes("INSERT OR REPLACE INTO daily_stats")
+          typeof call[0] === "string" && call[0].includes("INSERT OR REPLACE INTO daily_stats")
       );
       expect(insertCall).toBeDefined();
       expect(insertCall![1]).toEqual(["2025-01-15", "spotify", "streams", 50000]);
@@ -43,8 +42,7 @@ describe("database", () => {
       const result = await getLatestStats();
 
       const selectCall = mockSelect.mock.calls.find(
-        (call: unknown[]) =>
-          typeof call[0] === "string" && call[0].includes("MAX(date)")
+        (call: unknown[]) => typeof call[0] === "string" && call[0].includes("MAX(date)")
       );
       expect(selectCall).toBeDefined();
       expect(result).toEqual([
@@ -59,8 +57,7 @@ describe("database", () => {
       await getStatsRange("2025-01-01", "2025-01-31");
 
       const rangeCall = mockSelect.mock.calls.find(
-        (call: unknown[]) =>
-          typeof call[0] === "string" && call[0].includes("BETWEEN")
+        (call: unknown[]) => typeof call[0] === "string" && call[0].includes("BETWEEN")
       );
       expect(rangeCall).toBeDefined();
       expect(rangeCall![1]).toEqual(["2025-01-01", "2025-01-31"]);
@@ -109,15 +106,17 @@ describe("database", () => {
 
       const trackCalls = mockExecute.mock.calls.filter(
         (call: unknown[]) =>
-          typeof call[0] === "string" &&
-          call[0].includes("INSERT OR REPLACE INTO top_tracks")
+          typeof call[0] === "string" && call[0].includes("INSERT OR REPLACE INTO top_tracks")
       );
       expect(trackCalls).toHaveLength(2);
-      expect(trackCalls[0][1]).toEqual([
-        "2025-01-15", "spotify", 1, "Song A", 1000, null,
-      ]);
+      expect(trackCalls[0][1]).toEqual(["2025-01-15", "spotify", 1, "Song A", 1000, null]);
       expect(trackCalls[1][1]).toEqual([
-        "2025-01-15", "spotify", 2, "Song B", 500, "http://example.com/art.jpg",
+        "2025-01-15",
+        "spotify",
+        2,
+        "Song B",
+        500,
+        "http://example.com/art.jpg",
       ]);
     });
   });

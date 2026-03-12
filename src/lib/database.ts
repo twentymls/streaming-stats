@@ -35,9 +35,7 @@ async function runMigrations(database: Database): Promise<void> {
     )
   `);
 
-  await database.execute(
-    `CREATE INDEX IF NOT EXISTS idx_daily_stats_date ON daily_stats(date)`
-  );
+  await database.execute(`CREATE INDEX IF NOT EXISTS idx_daily_stats_date ON daily_stats(date)`);
   await database.execute(
     `CREATE INDEX IF NOT EXISTS idx_daily_stats_source ON daily_stats(source)`
   );
@@ -175,23 +173,44 @@ export async function saveTopCurators(
     const c = curators[i];
     await database.execute(
       `INSERT OR REPLACE INTO top_curators (date, source, rank, curator_name, followers_total, image_url, external_url) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [date, source, i + 1, c.curator_name, c.followers_total ?? null, c.image_url ?? null, c.external_url ?? null]
+      [
+        date,
+        source,
+        i + 1,
+        c.curator_name,
+        c.followers_total ?? null,
+        c.image_url ?? null,
+        c.external_url ?? null,
+      ]
     );
   }
 }
 
 export async function getLatestTopTracks(source: string): Promise<TopTrack[]> {
   const database = await getDb();
-  const rows = await database.select<{ title: string; streams: number; artwork_url: string | null }[]>(
+  const rows = await database.select<
+    { title: string; streams: number; artwork_url: string | null }[]
+  >(
     `SELECT title, streams, artwork_url FROM top_tracks WHERE source = $1 AND date = (SELECT MAX(date) FROM top_tracks WHERE source = $1) ORDER BY rank ASC`,
     [source]
   );
-  return rows.map((r) => ({ title: r.title, streams: r.streams, artwork_url: r.artwork_url ?? undefined }));
+  return rows.map((r) => ({
+    title: r.title,
+    streams: r.streams,
+    artwork_url: r.artwork_url ?? undefined,
+  }));
 }
 
 export async function getLatestTopCurators(source: string): Promise<TopCurator[]> {
   const database = await getDb();
-  const rows = await database.select<{ curator_name: string; followers_total: string | null; image_url: string | null; external_url: string | null }[]>(
+  const rows = await database.select<
+    {
+      curator_name: string;
+      followers_total: string | null;
+      image_url: string | null;
+      external_url: string | null;
+    }[]
+  >(
     `SELECT curator_name, followers_total, image_url, external_url FROM top_curators WHERE source = $1 AND date = (SELECT MAX(date) FROM top_curators WHERE source = $1) ORDER BY rank ASC`,
     [source]
   );
@@ -205,7 +224,9 @@ export async function getLatestTopCurators(source: string): Promise<TopCurator[]
 
 export async function getAllCachedTopTracks(): Promise<Map<string, TopTrack[]>> {
   const database = await getDb();
-  const rows = await database.select<{ source: string; title: string; streams: number; artwork_url: string | null; rank: number }[]>(
+  const rows = await database.select<
+    { source: string; title: string; streams: number; artwork_url: string | null; rank: number }[]
+  >(
     `SELECT t.source, t.title, t.streams, t.artwork_url, t.rank FROM top_tracks t
      INNER JOIN (SELECT source, MAX(date) as max_date FROM top_tracks GROUP BY source) m
      ON t.source = m.source AND t.date = m.max_date
@@ -214,14 +235,25 @@ export async function getAllCachedTopTracks(): Promise<Map<string, TopTrack[]>> 
   const map = new Map<string, TopTrack[]>();
   for (const r of rows) {
     if (!map.has(r.source)) map.set(r.source, []);
-    map.get(r.source)!.push({ title: r.title, streams: r.streams, artwork_url: r.artwork_url ?? undefined });
+    map
+      .get(r.source)!
+      .push({ title: r.title, streams: r.streams, artwork_url: r.artwork_url ?? undefined });
   }
   return map;
 }
 
 export async function getAllCachedTopCurators(): Promise<Map<string, TopCurator[]>> {
   const database = await getDb();
-  const rows = await database.select<{ source: string; curator_name: string; followers_total: string | null; image_url: string | null; external_url: string | null; rank: number }[]>(
+  const rows = await database.select<
+    {
+      source: string;
+      curator_name: string;
+      followers_total: string | null;
+      image_url: string | null;
+      external_url: string | null;
+      rank: number;
+    }[]
+  >(
     `SELECT t.source, t.curator_name, t.followers_total, t.image_url, t.external_url, t.rank FROM top_curators t
      INNER JOIN (SELECT source, MAX(date) as max_date FROM top_curators GROUP BY source) m
      ON t.source = m.source AND t.date = m.max_date

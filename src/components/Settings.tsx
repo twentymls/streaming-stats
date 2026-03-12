@@ -57,9 +57,7 @@ export function Settings({ onBack, onReset }: SettingsProps) {
         <input
           type="password"
           value={settings.api_key}
-          onChange={(e) =>
-            setSettings({ ...settings, api_key: e.target.value })
-          }
+          onChange={(e) => setSettings({ ...settings, api_key: e.target.value })}
           className="setup-input"
         />
       </div>
@@ -69,9 +67,7 @@ export function Settings({ onBack, onReset }: SettingsProps) {
         <input
           type="text"
           value={settings.spotify_artist_id}
-          onChange={(e) =>
-            setSettings({ ...settings, spotify_artist_id: e.target.value })
-          }
+          onChange={(e) => setSettings({ ...settings, spotify_artist_id: e.target.value })}
           className="setup-input"
         />
       </div>
@@ -96,10 +92,7 @@ export function Settings({ onBack, onReset }: SettingsProps) {
         <h3>API usage this month</h3>
         <div className="api-usage">
           <div className="api-bar">
-            <div
-              className="api-bar-fill"
-              style={{ width: `${(apiCount / 500) * 100}%` }}
-            />
+            <div className="api-bar-fill" style={{ width: `${(apiCount / 500) * 100}%` }} />
           </div>
           <span>
             {apiCount} / 500 requests ({Math.round((apiCount / 500) * 100)}
@@ -111,8 +104,7 @@ export function Settings({ onBack, onReset }: SettingsProps) {
       <div className="settings-section">
         <h3>Historic data</h3>
         <p style={{ fontSize: "0.85rem", color: "#888", margin: "0.5rem 0" }}>
-          Download up to 90 days of past stats from Songstats. Uses ~8 API
-          calls. Only needed once.
+          Download up to 90 days of past stats from Songstats. Uses ~8 API calls. Only needed once.
         </p>
         <button
           className="btn"
@@ -139,9 +131,7 @@ export function Settings({ onBack, onReset }: SettingsProps) {
           {backfilling ? "Downloading..." : "Backfill historic data"}
         </button>
         {backfillResult && (
-          <p style={{ fontSize: "0.85rem", marginTop: "0.5rem" }}>
-            {backfillResult}
-          </p>
+          <p style={{ fontSize: "0.85rem", marginTop: "0.5rem" }}>{backfillResult}</p>
         )}
       </div>
 

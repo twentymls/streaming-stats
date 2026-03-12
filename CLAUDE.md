@@ -13,6 +13,13 @@ Desktop app for tracking music streaming statistics across platforms (Spotify, A
 - `npm test` — Run frontend tests once
 - `npm run test:watch` — Run frontend tests in watch mode
 - `cd src-tauri && cargo test` — Run Rust backend tests
+- `npm run lint` — Run ESLint on frontend code
+- `npm run lint:fix` — Run ESLint with auto-fix
+- `npm run format` — Format frontend code with Prettier
+- `npm run format:check` — Check frontend formatting without writing
+- `cd src-tauri && cargo clippy` — Run Rust linter
+- `cd src-tauri && cargo fmt` — Format Rust code
+- `cd src-tauri && cargo fmt --check` — Check Rust formatting without writing
 
 ## Architecture
 
@@ -115,8 +122,15 @@ Frontend communicates with backend via Tauri's IPC (`invoke`). API calls go thro
 - Pure logic belongs in `src/lib/utils.ts` so it can be tested without component rendering.
 - Mock `./StatsChart` in component tests — Chart.js doesn't work in jsdom.
 
-### General
+### Linting & Formatting
 
-- No linter or formatter is configured. Keep code style consistent with the existing codebase.
+- Every code change (new feature, bug fix, refactor) **must** pass all linters and formatters before committing. Run and fix any issues:
+  - **Frontend**: `npm run lint:fix` (ESLint) and `npm run format` (Prettier).
+  - **Backend**: `cd src-tauri && cargo clippy` and `cd src-tauri && cargo fmt`.
+- ESLint is configured in `eslint.config.js` with TypeScript, React Hooks, and React Refresh plugins.
+- Prettier is configured in `.prettierrc`. It controls all formatting — do not fight it with manual style choices.
+- Clippy warnings should be treated as errors. Fix them, don't suppress with `#[allow(...)]` unless there's a documented reason.
+
+### General
 - The app identifier is `com.streamingstats.app`. Don't change it without updating all platform configs.
 - `.env` files are gitignored. Never commit API keys or secrets.

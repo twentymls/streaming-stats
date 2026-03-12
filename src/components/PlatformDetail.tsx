@@ -57,10 +57,7 @@ export function PlatformDetail({
           &larr; Back
         </button>
         <h1>
-          <span
-            className="platform-dot"
-            style={{ backgroundColor: color }}
-          />
+          <span className="platform-dot" style={{ backgroundColor: color }} />
           {name}
         </h1>
       </div>
@@ -68,9 +65,7 @@ export function PlatformDetail({
       {hero && (
         <div className="detail-hero" style={{ borderLeft: `4px solid ${color}` }}>
           <div className="detail-hero-value">{formatNumber(hero.value)}</div>
-          <div className="detail-hero-label">
-            {DSP_STAT_LABELS[hero.key] ?? hero.key}
-          </div>
+          <div className="detail-hero-label">{DSP_STAT_LABELS[hero.key] ?? hero.key}</div>
         </div>
       )}
 
@@ -80,9 +75,7 @@ export function PlatformDetail({
           .map(([key, value]) => (
             <div key={key} className="detail-stat-card">
               <div className="detail-stat-value">{formatNumber(value)}</div>
-              <div className="detail-stat-label">
-                {DSP_STAT_LABELS[key] ?? key}
-              </div>
+              <div className="detail-stat-label">{DSP_STAT_LABELS[key] ?? key}</div>
             </div>
           ))}
       </div>
@@ -90,26 +83,19 @@ export function PlatformDetail({
       <div className="top-tracks-section">
         <h3>Top Tracks</h3>
         {topTracks.length === 0 ? (
-          <div className="top-tracks-empty">
-            Top tracks not available for {name}
-          </div>
+          <div className="top-tracks-empty">Top tracks not available for {name}</div>
         ) : (
           <div className="top-tracks-list">
             {topTracks.map((track, i) => (
               <div key={i} className="top-track-item">
                 <span className="top-track-rank">{i + 1}</span>
                 {track.artwork_url && (
-                  <img
-                    className="top-track-artwork"
-                    src={track.artwork_url}
-                    alt=""
-                  />
+                  <img className="top-track-artwork" src={track.artwork_url} alt="" />
                 )}
                 <div className="top-track-info">
                   <div className="top-track-title">{track.title}</div>
                   <div className="top-track-streams">
-                    {formatNumber(track.streams)}{" "}
-                    {trendStatType === "views" ? "views" : "streams"}
+                    {formatNumber(track.streams)} {trendStatType === "views" ? "views" : "streams"}
                   </div>
                 </div>
               </div>
@@ -122,39 +108,35 @@ export function PlatformDetail({
         <div className="top-tracks-section">
           <h3>Top Curators</h3>
           {topCurators.length === 0 ? (
-            <div className="top-tracks-empty">
-              Top curators not available
-            </div>
+            <div className="top-tracks-empty">Top curators not available</div>
           ) : (
             <div className="top-tracks-list">
               {topCurators.slice(0, 10).map((curator, i) => (
-                  <a
-                    key={i}
-                    className="top-track-item"
-                    href={curator.external_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ textDecoration: "none", color: "inherit" }}
-                  >
-                    <span className="top-track-rank">{i + 1}</span>
-                    {curator.image_url != null && (
-                      <img
-                        className="top-track-artwork"
-                        src={curator.image_url}
-                        alt=""
-                        style={{ borderRadius: "50%" }}
-                      />
-                    )}
-                    <div className="top-track-info">
-                      <div className="top-track-title">
-                        {curator.curator_name}
-                      </div>
-                      <div className="top-track-streams">
-                        {curator.followers_total != null && `${curator.followers_total} followers`}
-                      </div>
+                <a
+                  key={i}
+                  className="top-track-item"
+                  href={curator.external_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  <span className="top-track-rank">{i + 1}</span>
+                  {curator.image_url != null && (
+                    <img
+                      className="top-track-artwork"
+                      src={curator.image_url}
+                      alt=""
+                      style={{ borderRadius: "50%" }}
+                    />
+                  )}
+                  <div className="top-track-info">
+                    <div className="top-track-title">{curator.curator_name}</div>
+                    <div className="top-track-streams">
+                      {curator.followers_total != null && `${curator.followers_total} followers`}
                     </div>
-                  </a>
-                ))}
+                  </div>
+                </a>
+              ))}
             </div>
           )}
         </div>
