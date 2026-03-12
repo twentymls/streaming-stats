@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { DSP_COLORS, DSP_NAMES, DSP_STAT_LABELS } from "../lib/constants";
 import { TrendChart } from "./StatsChart";
-import { DailyStat, TopTrack, TopCurator } from "../lib/types";
+import type { DailyStat, TopTrack, TopCurator } from "../lib/types";
 import { format, subDays } from "date-fns";
+import { formatNumber, getHeroStat } from "../lib/utils";
 
 interface PlatformDetailProps {
   source: string;
@@ -11,41 +12,6 @@ interface PlatformDetailProps {
   topTracks: TopTrack[];
   topCurators: TopCurator[];
   onBack: () => void;
-}
-
-function formatNumber(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
-  return n.toLocaleString("it-IT");
-}
-
-const HERO_STAT_PRIORITY: Record<string, string[]> = {
-  spotify: ["monthly_listeners", "streams", "followers"],
-  youtube: ["views", "followers"],
-  tiktok: ["views", "creates", "followers"],
-  shazam: ["shazams"],
-  soundcloud: ["plays", "followers"],
-  apple_music: ["streams", "playlist_reach"],
-  deezer: ["streams", "followers"],
-  amazon: ["streams", "followers"],
-};
-
-function getHeroStat(
-  source: string,
-  stats: Record<string, number>
-): { key: string; value: number } | null {
-  const priority = HERO_STAT_PRIORITY[source] ?? [
-    "streams",
-    "views",
-    "creates",
-    "shazams",
-    "plays",
-  ];
-  for (const key of priority) {
-    if (stats[key] != null) return { key, value: stats[key] };
-  }
-  const first = Object.entries(stats)[0];
-  return first ? { key: first[0], value: first[1] } : null;
 }
 
 export function PlatformDetail({

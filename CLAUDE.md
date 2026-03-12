@@ -10,6 +10,9 @@ Desktop app for tracking music streaming statistics across platforms (Spotify, A
 - `npx tauri dev` — Full development mode (Rust backend + Vite frontend)
 - `npx tauri build --bundles app` — Production build
 - `npm run build` — Frontend-only build (TypeScript + Vite)
+- `npm test` — Run frontend tests once
+- `npm run test:watch` — Run frontend tests in watch mode
+- `cd src-tauri && cargo test` — Run Rust backend tests
 
 ## Architecture
 
@@ -103,9 +106,17 @@ Frontend communicates with backend via Tauri's IPC (`invoke`). API calls go thro
 - The app uses a dark theme by default. All color values should reference `var(--color-*)`.
 - Use flexbox for layouts. No CSS framework is installed.
 
+### Testing
+
+- Every code change (new feature, bug fix, refactor) must include corresponding test creation or updates. Never merge code without tests.
+- Frontend tests use **Vitest** with `jsdom` environment and `@testing-library/react`. Run with `npm test`.
+- Rust tests use `cargo test`. Run with `cd src-tauri && cargo test`.
+- Mock Tauri plugins (store, sql, http, shell) in `src/test/setup.ts` — they don't work outside the Tauri runtime.
+- Pure logic belongs in `src/lib/utils.ts` so it can be tested without component rendering.
+- Mock `./StatsChart` in component tests — Chart.js doesn't work in jsdom.
+
 ### General
 
 - No linter or formatter is configured. Keep code style consistent with the existing codebase.
-- No tests exist yet. If adding tests, use Vitest for frontend (it integrates with Vite) and `cargo test` for Rust.
 - The app identifier is `com.streamingstats.app`. Don't change it without updating all platform configs.
 - `.env` files are gitignored. Never commit API keys or secrets.

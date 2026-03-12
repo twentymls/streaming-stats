@@ -92,7 +92,7 @@ export async function getArtistStats(
   return { source, stats };
 }
 
-const FIELD_MAP: Record<string, string> = {
+export const FIELD_MAP: Record<string, string> = {
   streams_total: "streams",
   views_total: "views",
   video_views_total: "views",
@@ -111,7 +111,7 @@ const FIELD_MAP: Record<string, string> = {
   favorites_total: "favorites",
 };
 
-function mapStatFields(rawData: Record<string, number>): Record<string, number> {
+export function mapStatFields(rawData: Record<string, number>): Record<string, number> {
   const stats: Record<string, number> = {};
   for (const [apiField, value] of Object.entries(rawData)) {
     const statType = FIELD_MAP[apiField];

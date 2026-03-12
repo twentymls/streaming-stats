@@ -1,15 +1,10 @@
 import { DSP_COLORS, DSP_NAMES, DSP_STAT_LABELS } from "../lib/constants";
+import { formatNumber } from "../lib/utils";
 
 interface PlatformCardProps {
   source: string;
   stats: Record<string, number>;
   onClick?: () => void;
-}
-
-function formatNumber(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
-  return n.toLocaleString("it-IT");
 }
 
 export function PlatformCard({ source, stats, onClick }: PlatformCardProps) {
