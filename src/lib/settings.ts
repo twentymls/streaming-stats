@@ -40,3 +40,40 @@ export async function hasApiKey(): Promise<boolean> {
   const key = await store.get<string>("api_key");
   return !!key;
 }
+
+export async function getAutoFetchState(): Promise<{
+  lastFetchIso: string | null;
+  fetchCountToday: number;
+}> {
+  const store = await load(STORE_NAME);
+  const lastFetchIso =
+    (await store.get<string>("last_fetch_iso")) ?? null;
+  const fetchCountToday =
+    (await store.get<number>("fetch_count_today")) ?? 0;
+
+  // Reset counter if the stored date is not today
+  const today = new Date().toLocaleDateString("sv"); // yyyy-MM-dd local
+  const lastDate = lastFetchIso?.slice(0, 10);
+  if (lastDate !== today) {
+    return { lastFetchIso, fetchCountToday: 0 };
+  }
+
+  return { lastFetchIso, fetchCountToday };
+}
+
+export async function recordFetch(): Promise<void> {
+  const store = await load(STORE_NAME);
+  const now = new Date();
+  const todayStr = now.toLocaleDateString("sv");
+  const nowIso = now.toISOString();
+
+  const prevIso = await store.get<string>("last_fetch_iso");
+  const prevDate = prevIso?.slice(0, 10);
+  const prevCount = (await store.get<number>("fetch_count_today")) ?? 0;
+
+  const newCount = prevDate === todayStr ? prevCount + 1 : 1;
+
+  await store.set("last_fetch_iso", nowIso);
+  await store.set("fetch_count_today", newCount);
+  await store.save();
+}

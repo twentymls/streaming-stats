@@ -8,7 +8,7 @@ import {
   getMonthlyApiCount,
 } from "../lib/database";
 import { fetchAllStats, getArtistInfo } from "../lib/songstats-api";
-import { loadSettings } from "../lib/settings";
+import { loadSettings, getAutoFetchState, recordFetch } from "../lib/settings";
 import { DailyStat, PlatformStats, AppSettings } from "../lib/types";
 import { DSP_NAMES } from "../lib/constants";
 import { format, subDays } from "date-fns";
@@ -29,6 +29,7 @@ export function Dashboard({ onReset }: DashboardProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [period, setPeriod] = useState(30);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
+  const [fetchesToday, setFetchesToday] = useState(0);
 
   const loadData = useCallback(async () => {
     const s = await loadSettings();
@@ -60,7 +61,7 @@ export function Dashboard({ onReset }: DashboardProps) {
     loadData();
   }, [loadData]);
 
-  const handleFetch = async () => {
+  const handleFetch = useCallback(async () => {
     if (!settings) return;
     setLoading(true);
     try {
@@ -69,12 +70,14 @@ export function Dashboard({ onReset }: DashboardProps) {
         settings.spotify_artist_id,
         settings.enabled_sources
       );
+      await recordFetch();
+      setFetchesToday((prev) => prev + 1);
       await loadData();
     } catch (err) {
       console.error("Fetch failed:", err);
     }
     setLoading(false);
-  };
+  }, [settings, loadData]);
 
   const handleFetchWithInfo = async () => {
     if (!settings) return;
@@ -90,12 +93,90 @@ export function Dashboard({ onReset }: DashboardProps) {
         settings.spotify_artist_id,
         settings.enabled_sources
       );
+      await recordFetch();
+      setFetchesToday((prev) => prev + 1);
       await loadData();
     } catch (err) {
       console.error("Fetch failed:", err);
     }
     setLoading(false);
   };
+
+  // Auto-fetch on mount: first launch of the day, or 8+ hours since last fetch
+  useEffect(() => {
+    if (!settings) return;
+    let cancelled = false;
+
+    (async () => {
+      const { lastFetchIso, fetchCountToday } = await getAutoFetchState();
+      const today = new Date().toLocaleDateString("sv");
+      const lastDate = lastFetchIso?.slice(0, 10);
+      const effectiveCount = lastDate === today ? fetchCountToday : 0;
+      setFetchesToday(effectiveCount);
+
+      if (cancelled) return;
+
+      let shouldFetch = false;
+      if (!lastFetchIso || lastDate !== today) {
+        shouldFetch = true;
+      } else if (effectiveCount < 2) {
+        const hoursSinceLast =
+          (Date.now() - new Date(lastFetchIso).getTime()) / (1000 * 60 * 60);
+        if (hoursSinceLast >= 8) {
+          shouldFetch = true;
+        }
+      }
+
+      if (shouldFetch) {
+        setLoading(true);
+        try {
+          const hasData = (await getLatestStats()).length > 0;
+          if (!hasData) {
+            const info = await getArtistInfo(
+              settings.api_key,
+              settings.spotify_artist_id
+            );
+            setArtistName(info.name);
+          }
+          await fetchAllStats(
+            settings.api_key,
+            settings.spotify_artist_id,
+            settings.enabled_sources
+          );
+          await recordFetch();
+          setFetchesToday((prev) => prev + 1);
+          await loadData();
+        } catch (err) {
+          console.error("Auto-fetch failed:", err);
+        }
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [settings?.api_key]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-check auto-fetch eligibility every 30 minutes while app is open
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const { lastFetchIso, fetchCountToday } = await getAutoFetchState();
+      const today = new Date().toLocaleDateString("sv");
+      const lastDate = lastFetchIso?.slice(0, 10);
+      const effectiveCount = lastDate === today ? fetchCountToday : 0;
+
+      if (effectiveCount >= 2 || !lastFetchIso) return;
+
+      const hoursSinceLast =
+        (Date.now() - new Date(lastFetchIso).getTime()) / (1000 * 60 * 60);
+      if (hoursSinceLast >= 8) {
+        handleFetch();
+      }
+    }, 30 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [handleFetch]);
 
   if (showSettings) {
     return (
@@ -133,10 +214,14 @@ export function Dashboard({ onReset }: DashboardProps) {
           </div>
           <button
             onClick={latestStats.size === 0 ? handleFetchWithInfo : handleFetch}
-            disabled={loading}
+            disabled={loading || fetchesToday >= 2}
             className="btn btn-primary"
           >
-            {loading ? "Updating..." : "Update"}
+            {loading
+              ? "Updating..."
+              : fetchesToday >= 2
+                ? "Done for today"
+                : "Update"}
           </button>
           <button onClick={() => setShowSettings(true)} className="btn">
             Settings
