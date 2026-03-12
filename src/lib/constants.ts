@@ -26,11 +26,14 @@ export const DSP_STAT_LABELS: Record<string, string> = {
   creates: "Creations",
   shazams: "Shazam",
   followers: "Followers",
+  monthly_listeners: "Monthly Listeners",
   playlist_reach: "Playlist Reach",
-  playlist_count: "Playlist",
+  playlist_count: "Playlists",
   chart_entries: "Chart Entries",
   likes: "Likes",
   plays: "Plays",
+  videos: "Videos",
+  favorites: "Favorites",
 };
 
 export const DEFAULT_SOURCES = [

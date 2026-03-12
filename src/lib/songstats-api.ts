@@ -72,34 +72,89 @@ export async function getArtistStats(
 
   await logApiCall("/artists/stats", source, 200);
 
-  const stats: Record<string, number> = {};
   const entry = data.stats?.find((s) => s.source === source);
-  if (entry?.data) {
-    // Map API field names to our stat types
-    const fieldMap: Record<string, string> = {
-      streams_total: "streams",
-      views_total: "views",
-      video_views_total: "views",
-      followers_total: "followers",
-      subscribers_total: "followers",
-      playlist_reach_current: "playlist_reach",
-      playlists_current: "playlist_count",
-      charts_total: "chart_entries",
-      likes_total: "likes",
-      video_likes_total: "likes",
-      plays_total: "plays",
-      creates_total: "creates",
-      shazams_total: "shazams",
-    };
-    for (const [apiField, value] of Object.entries(entry.data)) {
-      const statType = fieldMap[apiField];
-      if (statType) {
-        stats[statType] = value;
+  const stats = entry?.data ? mapStatFields(entry.data) : {};
+
+  return { source, stats };
+}
+
+const FIELD_MAP: Record<string, string> = {
+  streams_total: "streams",
+  views_total: "views",
+  video_views_total: "views",
+  followers_total: "followers",
+  subscribers_total: "followers",
+  monthly_listeners_current: "monthly_listeners",
+  playlist_reach_current: "playlist_reach",
+  playlists_current: "playlist_count",
+  charts_total: "chart_entries",
+  likes_total: "likes",
+  video_likes_total: "likes",
+  plays_total: "plays",
+  creates_total: "creates",
+  shazams_total: "shazams",
+  videos_total: "videos",
+  favorites_total: "favorites",
+};
+
+function mapStatFields(rawData: Record<string, number>): Record<string, number> {
+  const stats: Record<string, number> = {};
+  for (const [apiField, value] of Object.entries(rawData)) {
+    const statType = FIELD_MAP[apiField];
+    if (statType) stats[statType] = value;
+  }
+  return stats;
+}
+
+export async function fetchHistoricStats(
+  api_key: string,
+  spotifyArtistId: string,
+  sources: string[],
+  days: number = 90
+): Promise<number> {
+  const startDate = new Date(Date.now() - days * 86400000)
+    .toISOString()
+    .slice(0, 10);
+  let savedCount = 0;
+
+  for (let i = 0; i < sources.length; i++) {
+    const source = sources[i];
+    if (i > 0) await new Promise((r) => setTimeout(r, 1200));
+    try {
+      const data = await apiGet(api_key, "/artists/historic_stats", {
+        spotify_artist_id: spotifyArtistId,
+        source,
+        start_date: startDate,
+      });
+
+      await logApiCall("/artists/historic_stats", source, 200);
+
+      // Response format: { stats: [{ source, data: { history: [{ date, ...fields }] } }] }
+      const raw = data as { stats?: Array<{ source: string; data?: { history?: Array<Record<string, unknown>> } }> };
+      const match = raw.stats?.find((s) => s.source === source);
+      const entries = match?.data?.history ?? [];
+
+      for (const entry of entries) {
+        const date = entry.date as string | undefined;
+        if (!date) continue;
+        const mapped = mapStatFields(entry as unknown as Record<string, number>);
+        for (const [statType, value] of Object.entries(mapped)) {
+          if (typeof value === "number" && value > 0) {
+            await saveDailyStat(date, source, statType, value);
+            savedCount++;
+          }
+        }
       }
+    } catch (err) {
+      console.error(
+        `[songstats] FAILED to fetch historic stats for ${source}:`,
+        err
+      );
+      await logApiCall("/artists/historic_stats", source, 500);
     }
   }
 
-  return { source, stats };
+  return savedCount;
 }
 
 export async function fetchAllStats(

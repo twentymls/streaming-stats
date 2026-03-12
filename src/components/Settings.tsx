@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { loadSettings, saveSettings } from "../lib/settings";
 import { getMonthlyApiCount } from "../lib/database";
+import { fetchHistoricStats } from "../lib/songstats-api";
 import { AppSettings } from "../lib/types";
 import { DSP_NAMES, DEFAULT_SOURCES } from "../lib/constants";
 
@@ -13,6 +14,8 @@ export function Settings({ onBack, onReset }: SettingsProps) {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [apiCount, setApiCount] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillResult, setBackfillResult] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -103,6 +106,43 @@ export function Settings({ onBack, onReset }: SettingsProps) {
             %)
           </span>
         </div>
+      </div>
+
+      <div className="settings-section">
+        <h3>Historic data</h3>
+        <p style={{ fontSize: "0.85rem", color: "#888", margin: "0.5rem 0" }}>
+          Download up to 90 days of past stats from Songstats. Uses ~8 API
+          calls. Only needed once.
+        </p>
+        <button
+          className="btn"
+          disabled={backfilling}
+          onClick={async () => {
+            if (!settings) return;
+            setBackfilling(true);
+            setBackfillResult(null);
+            try {
+              const count = await fetchHistoricStats(
+                settings.api_key,
+                settings.spotify_artist_id,
+                settings.enabled_sources
+              );
+              setBackfillResult(`Done — saved ${count} data points`);
+              const c = await getMonthlyApiCount();
+              setApiCount(c);
+            } catch (err) {
+              setBackfillResult(`Error: ${err}`);
+            }
+            setBackfilling(false);
+          }}
+        >
+          {backfilling ? "Downloading..." : "Backfill historic data"}
+        </button>
+        {backfillResult && (
+          <p style={{ fontSize: "0.85rem", marginTop: "0.5rem" }}>
+            {backfillResult}
+          </p>
+        )}
       </div>
 
       <div className="settings-actions">

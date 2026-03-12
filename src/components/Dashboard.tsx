@@ -7,7 +7,7 @@ import {
   getStatsRange,
   getMonthlyApiCount,
 } from "../lib/database";
-import { fetchAllStats, getArtistInfo } from "../lib/songstats-api";
+import { fetchAllStats, fetchHistoricStats, getArtistInfo } from "../lib/songstats-api";
 import { loadSettings, getAutoFetchState, recordFetch } from "../lib/settings";
 import { DailyStat, PlatformStats, AppSettings } from "../lib/types";
 import { DSP_NAMES } from "../lib/constants";
@@ -137,6 +137,12 @@ export function Dashboard({ onReset }: DashboardProps) {
               settings.spotify_artist_id
             );
             setArtistName(info.name);
+            // One-time backfill of historic data on first launch
+            await fetchHistoricStats(
+              settings.api_key,
+              settings.spotify_artist_id,
+              settings.enabled_sources
+            );
           }
           await fetchAllStats(
             settings.api_key,
