@@ -105,6 +105,19 @@ body {
   line-height: 1.5;
 }
 
+.setup-guide {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.7;
+  padding-left: 1.2rem;
+  text-align: left;
+}
+
+.setup-guide strong {
+  color: var(--text);
+}
+
 .link-text {
   color: var(--accent);
   word-break: break-all;

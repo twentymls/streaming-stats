@@ -20,15 +20,15 @@ export function Setup({ onComplete }: SetupProps) {
   const handleTestKey = async () => {
     setLoading(true);
     setError("");
-    try {
-      const valid = await testApiKey(apiKey.trim());
-      if (valid) {
-        setStep(2);
-      } else {
-        setError("Invalid API key. Please check and try again.");
-      }
-    } catch {
+    const result = await testApiKey(apiKey.trim());
+    if (result.valid) {
+      setStep(2);
+    } else if (result.error === "network") {
       setError("Connection error. Check your internet connection.");
+    } else if (result.error === "rate_limit") {
+      setError("API rate limit reached. Please wait a minute and try again.");
+    } else {
+      setError("Invalid API key. Please check and try again.");
     }
     setLoading(false);
   };
@@ -88,19 +88,27 @@ export function Setup({ onComplete }: SetupProps) {
         {step === 1 && (
           <div className="setup-step">
             <h2>RapidAPI Key</h2>
-            <p>
-              <a
-                href="#"
-                className="link-text clickable"
-                onClick={(e) => {
-                  e.preventDefault();
-                  open("https://rapidapi.com/songstats-app-songstats-app-default/api/songstats/pricing");
-                }}
-              >
-                Subscribe to the free plan on RapidAPI
-              </a>
-              , then copy your API key and paste it below.
-            </p>
+            <ol className="setup-guide">
+              <li>
+                <a
+                  href="#"
+                  className="link-text clickable"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    open("https://rapidapi.com/songstats-app-songstats-app-default/api/songstats/pricing");
+                  }}
+                >
+                  Open the Songstats API page on RapidAPI
+                </a>{" "}
+                and subscribe to the free plan.
+              </li>
+              <li>
+                Once subscribed, look for the{" "}
+                <strong>X-RapidAPI-Key</strong> field on the page — that's your
+                API key.
+              </li>
+              <li>Copy it and paste it below.</li>
+            </ol>
             <input
               type="password"
               placeholder="Paste your RapidAPI key..."

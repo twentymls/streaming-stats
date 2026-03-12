@@ -33,27 +33,27 @@ export async function getArtistInfo(
   const data = (await apiGet(api_key, "/artists/info", {
     spotify_artist_id: spotifyArtistId,
   })) as {
-    stats: {
+    artist_info: {
       songstats_artist_id: string;
       name: string;
       avatar: string;
-      source_data: Array<{ source: string; url: string }>;
+      links: Array<{ source: string; url: string }>;
     };
   };
 
   await logApiCall("/artists/info", "all", 200);
 
   const sources: Record<string, string> = {};
-  if (data.stats?.source_data) {
-    for (const s of data.stats.source_data) {
+  if (data.artist_info?.links) {
+    for (const s of data.artist_info.links) {
       sources[s.source] = s.url;
     }
   }
 
   return {
-    songstats_artist_id: data.stats?.songstats_artist_id ?? "",
-    name: data.stats?.name ?? "Unknown",
-    avatar_url: data.stats?.avatar ?? "",
+    songstats_artist_id: data.artist_info?.songstats_artist_id ?? "",
+    name: data.artist_info?.name ?? "Unknown",
+    avatar_url: data.artist_info?.avatar ?? "",
     sources,
   };
 }
@@ -67,18 +67,35 @@ export async function getArtistStats(
     spotify_artist_id: spotifyArtistId,
     source,
   })) as {
-    stats: {
-      source: string;
-      data: Array<{ source: string; stat_type: string; value: number }>;
-    };
+    stats: Array<{ source: string; data: Record<string, number> }>;
   };
 
   await logApiCall("/artists/stats", source, 200);
 
   const stats: Record<string, number> = {};
-  if (data.stats?.data) {
-    for (const item of data.stats.data) {
-      stats[item.stat_type] = item.value;
+  const entry = data.stats?.find((s) => s.source === source);
+  if (entry?.data) {
+    // Map API field names to our stat types
+    const fieldMap: Record<string, string> = {
+      streams_total: "streams",
+      views_total: "views",
+      video_views_total: "views",
+      followers_total: "followers",
+      subscribers_total: "followers",
+      playlist_reach_current: "playlist_reach",
+      playlists_current: "playlist_count",
+      charts_total: "chart_entries",
+      likes_total: "likes",
+      video_likes_total: "likes",
+      plays_total: "plays",
+      creates_total: "creates",
+      shazams_total: "shazams",
+    };
+    for (const [apiField, value] of Object.entries(entry.data)) {
+      const statType = fieldMap[apiField];
+      if (statType) {
+        stats[statType] = value;
+      }
     }
   }
 
@@ -115,13 +132,31 @@ export async function fetchAllStats(
   return results;
 }
 
-export async function testApiKey(api_key: string): Promise<boolean> {
+export async function testApiKey(
+  api_key: string
+): Promise<{ valid: boolean; error?: string }> {
   try {
-    await apiGet(api_key, "/artists/info", {
-      spotify_artist_id: "5k8aKKH3WU39dXEbRyUhGJ",
+    const url = new URL(`${RAPIDAPI_BASE_URL}/artists/info`);
+    url.searchParams.set("spotify_artist_id", "5k8aKKH3WU39dXEbRyUhGJ");
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "x-rapidapi-key": api_key,
+        "x-rapidapi-host": RAPIDAPI_HOST,
+      },
     });
-    return true;
-  } catch {
-    return false;
+
+    if (response.ok) return { valid: true };
+
+    if (response.status === 403 || response.status === 401) {
+      return { valid: false, error: "invalid_key" };
+    }
+    if (response.status === 429) {
+      return { valid: false, error: "rate_limit" };
+    }
+    return { valid: false, error: `status_${response.status}` };
+  } catch (err) {
+    return { valid: false, error: "network" };
   }
 }
