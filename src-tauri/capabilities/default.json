@@ -1,0 +1,25 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default permissions for Streaming Stats",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "sql:default",
+    "sql:allow-execute",
+    "sql:allow-select",
+    "store:default",
+    "store:allow-get",
+    "store:allow-set",
+    "store:allow-save",
+    "store:allow-load",
+    "http:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://songstats.p.rapidapi.com/**" }
+      ]
+    },
+    "shell:allow-open"
+  ]
+}
