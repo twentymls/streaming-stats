@@ -1,6 +1,6 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import { RAPIDAPI_BASE_URL, RAPIDAPI_HOST } from "./constants";
-import { ArtistInfo, PlatformStats } from "./types";
+import { ArtistInfo, PlatformStats, TopTrack } from "./types";
 import { logApiCall, saveDailyStat } from "./database";
 
 async function apiGet(
@@ -188,6 +188,49 @@ export async function fetchAllStats(
   }
 
   return results;
+}
+
+export async function fetchTopTracks(
+  api_key: string,
+  spotifyArtistId: string,
+  source: string
+): Promise<TopTrack[]> {
+  try {
+    const data = await apiGet(api_key, "/artists/top_tracks", {
+      spotify_artist_id: spotifyArtistId,
+      source,
+      limit: "5",
+    });
+
+    await logApiCall("/artists/top_tracks", source, 200);
+
+    console.log("[songstats] /artists/top_tracks raw response:", JSON.stringify(data, null, 2));
+
+    const raw = data as {
+      top_tracks?: Array<{
+        title?: string;
+        name?: string;
+        track_name?: string;
+        streams?: number;
+        streams_total?: number;
+        plays?: number;
+        views?: number;
+        artwork_url?: string;
+        image?: string;
+      }>;
+    };
+
+    const tracks = raw.top_tracks ?? [];
+    return tracks.map((t) => ({
+      title: t.title ?? t.name ?? t.track_name ?? "Unknown",
+      streams: t.streams ?? t.streams_total ?? t.plays ?? t.views ?? 0,
+      artwork_url: t.artwork_url ?? t.image,
+    }));
+  } catch (err) {
+    console.error(`[songstats] FAILED to fetch top tracks for ${source}:`, err);
+    await logApiCall("/artists/top_tracks", source, 500);
+    return [];
+  }
 }
 
 export async function testApiKey(

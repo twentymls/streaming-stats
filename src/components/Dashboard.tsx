@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { PlatformCard } from "./PlatformCard";
+import { PlatformDetail } from "./PlatformDetail";
 import { TrendChart, DistributionChart } from "./StatsChart";
 import { Settings } from "./Settings";
 import {
@@ -27,6 +28,7 @@ export function Dashboard({ onReset }: DashboardProps) {
   const [loading, setLoading] = useState(false);
   const [artistName, setArtistName] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [period, setPeriod] = useState(30);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   const [fetchesToday, setFetchesToday] = useState(0);
@@ -47,15 +49,15 @@ export function Dashboard({ onReset }: DashboardProps) {
     setLatestStats(grouped);
     if (latest.length > 0) setLastUpdate(latest[0].date);
 
-    // Load historic data
+    // Load historic data — always fetch 90 days so detail views can filter locally
     const endDate = format(new Date(), "yyyy-MM-dd");
-    const startDate = format(subDays(new Date(), period), "yyyy-MM-dd");
+    const startDate = format(subDays(new Date(), 90), "yyyy-MM-dd");
     const historic = await getStatsRange(startDate, endDate);
     setHistoricStats(historic);
 
     const count = await getMonthlyApiCount();
     setApiCount(count);
-  }, [period]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -184,6 +186,12 @@ export function Dashboard({ onReset }: DashboardProps) {
     return () => clearInterval(interval);
   }, [handleFetch]);
 
+  // Must be above early returns to keep hook order stable
+  const dashboardHistoric = useMemo(() => {
+    const cutoff = format(subDays(new Date(), period), "yyyy-MM-dd");
+    return historicStats.filter((s) => s.date >= cutoff);
+  }, [historicStats, period]);
+
   if (showSettings) {
     return (
       <Settings
@@ -192,6 +200,22 @@ export function Dashboard({ onReset }: DashboardProps) {
           loadData();
         }}
         onReset={onReset}
+      />
+    );
+  }
+
+  if (selectedPlatform && settings) {
+    const platformHistoric = historicStats.filter(
+      (s) => s.source === selectedPlatform
+    );
+    return (
+      <PlatformDetail
+        source={selectedPlatform}
+        stats={latestStats.get(selectedPlatform) ?? {}}
+        historicStats={platformHistoric}
+        apiKey={settings.api_key}
+        spotifyArtistId={settings.spotify_artist_id}
+        onBack={() => setSelectedPlatform(null)}
       />
     );
   }
@@ -252,6 +276,7 @@ export function Dashboard({ onReset }: DashboardProps) {
                   key={source}
                   source={source}
                   stats={latestStats.get(source)!}
+                  onClick={() => setSelectedPlatform(source)}
                 />
               ))}
             {settings?.enabled_sources
@@ -269,7 +294,7 @@ export function Dashboard({ onReset }: DashboardProps) {
               ))}
           </section>
 
-          {historicStats.length > 0 && (
+          {dashboardHistoric.length > 0 && (
             <section className="charts-section">
               <div className="period-selector">
                 {[7, 30, 60, 90].map((d) => (
@@ -285,7 +310,7 @@ export function Dashboard({ onReset }: DashboardProps) {
 
               <div className="charts-grid">
                 <TrendChart
-                  stats={historicStats}
+                  stats={dashboardHistoric}
                   title="Streams / Views over time"
                   statType="streams"
                 />

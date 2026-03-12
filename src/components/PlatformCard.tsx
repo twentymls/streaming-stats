@@ -3,6 +3,7 @@ import { DSP_COLORS, DSP_NAMES, DSP_STAT_LABELS } from "../lib/constants";
 interface PlatformCardProps {
   source: string;
   stats: Record<string, number>;
+  onClick?: () => void;
 }
 
 function formatNumber(n: number): string {
@@ -11,7 +12,7 @@ function formatNumber(n: number): string {
   return n.toLocaleString("it-IT");
 }
 
-export function PlatformCard({ source, stats }: PlatformCardProps) {
+export function PlatformCard({ source, stats, onClick }: PlatformCardProps) {
   const color = DSP_COLORS[source] ?? "#888";
   const name = DSP_NAMES[source] ?? source;
   const entries = Object.entries(stats);
@@ -29,7 +30,11 @@ export function PlatformCard({ source, stats }: PlatformCardProps) {
   const mainValue = mainKey ? stats[mainKey] : 0;
 
   return (
-    <div className="platform-card" style={{ borderLeftColor: color }}>
+    <div
+      className="platform-card"
+      style={{ borderLeftColor: color, cursor: onClick ? "pointer" : undefined }}
+      onClick={onClick}
+    >
       <div className="platform-header">
         <span className="platform-dot" style={{ backgroundColor: color }} />
         <span className="platform-name">{name}</span>

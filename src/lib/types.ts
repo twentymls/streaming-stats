@@ -32,3 +32,9 @@ export interface ApiCallLog {
   status_code: number;
   month_year: string;
 }
+
+export interface TopTrack {
+  title: string;
+  streams: number;
+  artwork_url?: string;
+}
