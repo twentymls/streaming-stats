@@ -11,19 +11,30 @@ async function apiGet(
   const url = new URL(`${RAPIDAPI_BASE_URL}${endpoint}`);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    headers: {
-      "x-rapidapi-key": api_key,
-      "x-rapidapi-host": RAPIDAPI_HOST,
-    },
-  });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
 
-  if (!response.ok) {
-    throw new Error(`API error ${response.status}: ${await response.text()}`);
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "x-rapidapi-key": api_key,
+        "x-rapidapi-host": RAPIDAPI_HOST,
+      },
+    });
+
+    if (response.status === 429) {
+      console.warn(`[songstats] Rate limited on ${endpoint}, retrying...`);
+      continue;
+    }
+
+    if (!response.ok) {
+      throw new Error(`API error ${response.status}: ${await response.text()}`);
+    }
+
+    return await response.json();
   }
 
-  return await response.json();
+  throw new Error(`API error 429: rate limited after 3 retries`);
 }
 
 export async function getArtistInfo(
@@ -190,41 +201,69 @@ export async function fetchAllStats(
   return results;
 }
 
+export async function fetchTopCurators(
+  api_key: string,
+  spotifyArtistId: string,
+  source: string
+): Promise<unknown[]> {
+  try {
+    const data = await apiGet(api_key, "/artists/top_curators", {
+      spotify_artist_id: spotifyArtistId,
+      source,
+      scope: "total",
+    });
+
+    await logApiCall("/artists/top_curators", source, 200);
+
+    console.log("[songstats] /artists/top_curators raw response:", JSON.stringify(data, null, 2));
+
+    // Response: { data: [{ source, top_curators: [...] }] }
+    const raw = data as { data?: Array<{ top_curators?: unknown[] }> };
+    return raw.data?.[0]?.top_curators ?? [];
+  } catch (err) {
+    console.error(`[songstats] FAILED to fetch top curators for ${source}:`, err);
+    await logApiCall("/artists/top_curators", source, 500);
+    return [];
+  }
+}
+
+const TOP_TRACKS_METRIC: Record<string, string> = {
+  tiktok: "videos",
+  youtube: "views",
+  shazam: "shazams",
+};
+
 export async function fetchTopTracks(
   api_key: string,
   spotifyArtistId: string,
   source: string
 ): Promise<TopTrack[]> {
   try {
-    const data = await apiGet(api_key, "/artists/top_tracks", {
+    const params: Record<string, string> = {
       spotify_artist_id: spotifyArtistId,
       source,
       limit: "5",
-    });
+      scope: "total",
+    };
+    const metric = TOP_TRACKS_METRIC[source];
+    if (metric) params.metric = metric;
+
+    const data = await apiGet(api_key, "/artists/top_tracks", params);
 
     await logApiCall("/artists/top_tracks", source, 200);
 
     console.log("[songstats] /artists/top_tracks raw response:", JSON.stringify(data, null, 2));
 
+    // Response: { data: [{ source, top_tracks: [...] }] }
     const raw = data as {
-      top_tracks?: Array<{
-        title?: string;
-        name?: string;
-        track_name?: string;
-        streams?: number;
-        streams_total?: number;
-        plays?: number;
-        views?: number;
-        artwork_url?: string;
-        image?: string;
-      }>;
+      data?: Array<{ top_tracks?: Array<Record<string, unknown>> }>;
     };
 
-    const tracks = raw.top_tracks ?? [];
+    const tracks = raw.data?.[0]?.top_tracks ?? [];
     return tracks.map((t) => ({
-      title: t.title ?? t.name ?? t.track_name ?? "Unknown",
-      streams: t.streams ?? t.streams_total ?? t.plays ?? t.views ?? 0,
-      artwork_url: t.artwork_url ?? t.image,
+      title: String(t.track_name ?? t.title ?? t.name ?? "Unknown"),
+      streams: Number(t.rank_value ?? t.streams ?? t.streams_total ?? t.plays ?? t.views ?? 0),
+      artwork_url: t.image_url ? String(t.image_url) : t.artwork_url ? String(t.artwork_url) : undefined,
     }));
   } catch (err) {
     console.error(`[songstats] FAILED to fetch top tracks for ${source}:`, err);
