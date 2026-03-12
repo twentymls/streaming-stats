@@ -38,3 +38,10 @@ export interface TopTrack {
   streams: number;
   artwork_url?: string;
 }
+
+export interface TopCurator {
+  curator_name: string;
+  followers_total?: string;
+  image_url?: string;
+  external_url?: string;
+}

@@ -1,16 +1,15 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { DSP_COLORS, DSP_NAMES, DSP_STAT_LABELS } from "../lib/constants";
-import { fetchTopTracks, fetchTopCurators } from "../lib/songstats-api";
 import { TrendChart } from "./StatsChart";
-import { DailyStat, TopTrack } from "../lib/types";
+import { DailyStat, TopTrack, TopCurator } from "../lib/types";
 import { format, subDays } from "date-fns";
 
 interface PlatformDetailProps {
   source: string;
   stats: Record<string, number>;
   historicStats: DailyStat[];
-  apiKey: string;
-  spotifyArtistId: string;
+  topTracks: TopTrack[];
+  topCurators: TopCurator[];
   onBack: () => void;
 }
 
@@ -53,50 +52,15 @@ export function PlatformDetail({
   source,
   stats,
   historicStats,
-  apiKey,
-  spotifyArtistId,
+  topTracks,
+  topCurators,
   onBack,
 }: PlatformDetailProps) {
-  const [topTracks, setTopTracks] = useState<TopTrack[]>([]);
-  const [tracksLoading, setTracksLoading] = useState(true);
-  const [tracksError, setTracksError] = useState(false);
-  const [curators, setCurators] = useState<unknown[]>([]);
-  const [curatorsLoading, setCuratorsLoading] = useState(false);
   const [period, setPeriod] = useState(30);
 
   const color = DSP_COLORS[source] ?? "#888";
   const name = DSP_NAMES[source] ?? source;
   const hero = getHeroStat(source, stats);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      // Fetch top tracks first
-      setTracksLoading(true);
-      setTracksError(false);
-      const tracks = await fetchTopTracks(apiKey, spotifyArtistId, source);
-      if (cancelled) return;
-      if (tracks.length === 0) {
-        setTracksError(true);
-      }
-      setTopTracks(tracks);
-      setTracksLoading(false);
-
-      // For TikTok, also fetch top curators (with delay to avoid rate limit)
-      if (source === "tiktok") {
-        setCuratorsLoading(true);
-        await new Promise((r) => setTimeout(r, 1500));
-        if (cancelled) return;
-        const result = await fetchTopCurators(apiKey, spotifyArtistId, source);
-        if (cancelled) return;
-        setCurators(result);
-        setCuratorsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [apiKey, spotifyArtistId, source]);
 
   const filteredHistoric = useMemo(() => {
     const cutoff = format(subDays(new Date(), period), "yyyy-MM-dd");
@@ -159,9 +123,7 @@ export function PlatformDetail({
 
       <div className="top-tracks-section">
         <h3>Top Tracks</h3>
-        {tracksLoading ? (
-          <div className="top-tracks-empty">Loading tracks...</div>
-        ) : tracksError ? (
+        {topTracks.length === 0 ? (
           <div className="top-tracks-empty">
             Top tracks not available for {name}
           </div>
@@ -193,45 +155,40 @@ export function PlatformDetail({
       {source === "tiktok" && (
         <div className="top-tracks-section">
           <h3>Top Curators</h3>
-          {curatorsLoading ? (
-            <div className="top-tracks-empty">Loading curators...</div>
-          ) : curators.length === 0 ? (
+          {topCurators.length === 0 ? (
             <div className="top-tracks-empty">
               Top curators not available
             </div>
           ) : (
             <div className="top-tracks-list">
-              {curators.slice(0, 10).map((curator, i) => {
-                const c = curator as Record<string, unknown>;
-                return (
+              {topCurators.slice(0, 10).map((curator, i) => (
                   <a
                     key={i}
                     className="top-track-item"
-                    href={c.external_url ? String(c.external_url) : undefined}
+                    href={curator.external_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ textDecoration: "none", color: "inherit" }}
                   >
                     <span className="top-track-rank">{i + 1}</span>
-                    {c.image_url != null && (
+                    {curator.image_url != null && (
                       <img
                         className="top-track-artwork"
-                        src={String(c.image_url)}
+                        src={curator.image_url}
                         alt=""
                         style={{ borderRadius: "50%" }}
                       />
                     )}
                     <div className="top-track-info">
                       <div className="top-track-title">
-                        {String(c.curator_name ?? "Unknown")}
+                        {curator.curator_name}
                       </div>
                       <div className="top-track-streams">
-                        {c.followers_total != null && `${String(c.followers_total)} followers`}
+                        {curator.followers_total != null && `${curator.followers_total} followers`}
                       </div>
                     </div>
                   </a>
-                );
-              })}
+                ))}
             </div>
           )}
         </div>

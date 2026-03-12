@@ -1,7 +1,10 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import { RAPIDAPI_BASE_URL, RAPIDAPI_HOST } from "./constants";
-import { ArtistInfo, PlatformStats, TopTrack } from "./types";
-import { logApiCall, saveDailyStat } from "./database";
+import { ArtistInfo, PlatformStats, TopTrack, TopCurator } from "./types";
+import { logApiCall, saveDailyStat, saveTopTracks, saveTopCurators } from "./database";
+
+export const TOP_TRACKS_SOURCES = ["spotify", "tiktok"];
+export const TOP_CURATORS_SOURCES = ["tiktok"];
 
 async function apiGet(
   api_key: string,
@@ -205,7 +208,7 @@ export async function fetchTopCurators(
   api_key: string,
   spotifyArtistId: string,
   source: string
-): Promise<unknown[]> {
+): Promise<TopCurator[]> {
   try {
     const data = await apiGet(api_key, "/artists/top_curators", {
       spotify_artist_id: spotifyArtistId,
@@ -215,11 +218,17 @@ export async function fetchTopCurators(
 
     await logApiCall("/artists/top_curators", source, 200);
 
-    console.log("[songstats] /artists/top_curators raw response:", JSON.stringify(data, null, 2));
-
     // Response: { data: [{ source, top_curators: [...] }] }
-    const raw = data as { data?: Array<{ top_curators?: unknown[] }> };
-    return raw.data?.[0]?.top_curators ?? [];
+    const raw = data as {
+      data?: Array<{ top_curators?: Array<Record<string, unknown>> }>;
+    };
+    const curators = raw.data?.[0]?.top_curators ?? [];
+    return curators.map((c) => ({
+      curator_name: String(c.curator_name ?? "Unknown"),
+      followers_total: c.followers_total ? String(c.followers_total) : undefined,
+      image_url: c.image_url ? String(c.image_url) : undefined,
+      external_url: c.external_url ? String(c.external_url) : undefined,
+    }));
   } catch (err) {
     console.error(`[songstats] FAILED to fetch top curators for ${source}:`, err);
     await logApiCall("/artists/top_curators", source, 500);
@@ -269,6 +278,41 @@ export async function fetchTopTracks(
     console.error(`[songstats] FAILED to fetch top tracks for ${source}:`, err);
     await logApiCall("/artists/top_tracks", source, 500);
     return [];
+  }
+}
+
+export async function fetchAndCacheTopContent(
+  api_key: string,
+  spotifyArtistId: string,
+  topTracksSources: string[],
+  topCuratorsSources: string[]
+): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+
+  for (let i = 0; i < topTracksSources.length; i++) {
+    const source = topTracksSources[i];
+    if (i > 0) await new Promise((r) => setTimeout(r, 1200));
+    try {
+      const tracks = await fetchTopTracks(api_key, spotifyArtistId, source);
+      if (tracks.length > 0) {
+        await saveTopTracks(today, source, tracks);
+      }
+    } catch (err) {
+      console.error(`[songstats] FAILED to cache top tracks for ${source}:`, err);
+    }
+  }
+
+  for (let i = 0; i < topCuratorsSources.length; i++) {
+    const source = topCuratorsSources[i];
+    await new Promise((r) => setTimeout(r, 1200));
+    try {
+      const curators = await fetchTopCurators(api_key, spotifyArtistId, source);
+      if (curators.length > 0) {
+        await saveTopCurators(today, source, curators);
+      }
+    } catch (err) {
+      console.error(`[songstats] FAILED to cache top curators for ${source}:`, err);
+    }
   }
 }
 

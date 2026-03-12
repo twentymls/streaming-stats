@@ -1,5 +1,5 @@
 import Database from "@tauri-apps/plugin-sql";
-import { DailyStat } from "./types";
+import { DailyStat, TopTrack, TopCurator } from "./types";
 
 let db: Database | null = null;
 
@@ -43,6 +43,40 @@ async function runMigrations(database: Database): Promise<void> {
   );
   await database.execute(
     `CREATE INDEX IF NOT EXISTS idx_api_calls_month ON api_calls_log(month_year)`
+  );
+
+  await database.execute(`
+    CREATE TABLE IF NOT EXISTS top_tracks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL,
+      source TEXT NOT NULL,
+      rank INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      streams INTEGER NOT NULL DEFAULT 0,
+      artwork_url TEXT,
+      UNIQUE(date, source, rank)
+    )
+  `);
+
+  await database.execute(`
+    CREATE TABLE IF NOT EXISTS top_curators (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL,
+      source TEXT NOT NULL,
+      rank INTEGER NOT NULL,
+      curator_name TEXT NOT NULL,
+      followers_total TEXT,
+      image_url TEXT,
+      external_url TEXT,
+      UNIQUE(date, source, rank)
+    )
+  `);
+
+  await database.execute(
+    `CREATE INDEX IF NOT EXISTS idx_top_tracks_date_source ON top_tracks(date, source)`
+  );
+  await database.execute(
+    `CREATE INDEX IF NOT EXISTS idx_top_curators_date_source ON top_curators(date, source)`
   );
 }
 
@@ -114,4 +148,94 @@ export async function getLastFetchDate(): Promise<string | null> {
     `SELECT MAX(date) as date FROM daily_stats`
   );
   return result[0]?.date ?? null;
+}
+
+export async function saveTopTracks(
+  date: string,
+  source: string,
+  tracks: TopTrack[]
+): Promise<void> {
+  const database = await getDb();
+  for (let i = 0; i < tracks.length; i++) {
+    const t = tracks[i];
+    await database.execute(
+      `INSERT OR REPLACE INTO top_tracks (date, source, rank, title, streams, artwork_url) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [date, source, i + 1, t.title, t.streams, t.artwork_url ?? null]
+    );
+  }
+}
+
+export async function saveTopCurators(
+  date: string,
+  source: string,
+  curators: TopCurator[]
+): Promise<void> {
+  const database = await getDb();
+  for (let i = 0; i < curators.length; i++) {
+    const c = curators[i];
+    await database.execute(
+      `INSERT OR REPLACE INTO top_curators (date, source, rank, curator_name, followers_total, image_url, external_url) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [date, source, i + 1, c.curator_name, c.followers_total ?? null, c.image_url ?? null, c.external_url ?? null]
+    );
+  }
+}
+
+export async function getLatestTopTracks(source: string): Promise<TopTrack[]> {
+  const database = await getDb();
+  const rows = await database.select<{ title: string; streams: number; artwork_url: string | null }[]>(
+    `SELECT title, streams, artwork_url FROM top_tracks WHERE source = $1 AND date = (SELECT MAX(date) FROM top_tracks WHERE source = $1) ORDER BY rank ASC`,
+    [source]
+  );
+  return rows.map((r) => ({ title: r.title, streams: r.streams, artwork_url: r.artwork_url ?? undefined }));
+}
+
+export async function getLatestTopCurators(source: string): Promise<TopCurator[]> {
+  const database = await getDb();
+  const rows = await database.select<{ curator_name: string; followers_total: string | null; image_url: string | null; external_url: string | null }[]>(
+    `SELECT curator_name, followers_total, image_url, external_url FROM top_curators WHERE source = $1 AND date = (SELECT MAX(date) FROM top_curators WHERE source = $1) ORDER BY rank ASC`,
+    [source]
+  );
+  return rows.map((r) => ({
+    curator_name: r.curator_name,
+    followers_total: r.followers_total ?? undefined,
+    image_url: r.image_url ?? undefined,
+    external_url: r.external_url ?? undefined,
+  }));
+}
+
+export async function getAllCachedTopTracks(): Promise<Map<string, TopTrack[]>> {
+  const database = await getDb();
+  const rows = await database.select<{ source: string; title: string; streams: number; artwork_url: string | null; rank: number }[]>(
+    `SELECT t.source, t.title, t.streams, t.artwork_url, t.rank FROM top_tracks t
+     INNER JOIN (SELECT source, MAX(date) as max_date FROM top_tracks GROUP BY source) m
+     ON t.source = m.source AND t.date = m.max_date
+     ORDER BY t.source, t.rank`
+  );
+  const map = new Map<string, TopTrack[]>();
+  for (const r of rows) {
+    if (!map.has(r.source)) map.set(r.source, []);
+    map.get(r.source)!.push({ title: r.title, streams: r.streams, artwork_url: r.artwork_url ?? undefined });
+  }
+  return map;
+}
+
+export async function getAllCachedTopCurators(): Promise<Map<string, TopCurator[]>> {
+  const database = await getDb();
+  const rows = await database.select<{ source: string; curator_name: string; followers_total: string | null; image_url: string | null; external_url: string | null; rank: number }[]>(
+    `SELECT t.source, t.curator_name, t.followers_total, t.image_url, t.external_url, t.rank FROM top_curators t
+     INNER JOIN (SELECT source, MAX(date) as max_date FROM top_curators GROUP BY source) m
+     ON t.source = m.source AND t.date = m.max_date
+     ORDER BY t.source, t.rank`
+  );
+  const map = new Map<string, TopCurator[]>();
+  for (const r of rows) {
+    if (!map.has(r.source)) map.set(r.source, []);
+    map.get(r.source)!.push({
+      curator_name: r.curator_name,
+      followers_total: r.followers_total ?? undefined,
+      image_url: r.image_url ?? undefined,
+      external_url: r.external_url ?? undefined,
+    });
+  }
+  return map;
 }

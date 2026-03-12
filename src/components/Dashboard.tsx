@@ -7,10 +7,19 @@ import {
   getLatestStats,
   getStatsRange,
   getMonthlyApiCount,
+  getAllCachedTopTracks,
+  getAllCachedTopCurators,
 } from "../lib/database";
-import { fetchAllStats, fetchHistoricStats, getArtistInfo } from "../lib/songstats-api";
+import {
+  fetchAllStats,
+  fetchHistoricStats,
+  getArtistInfo,
+  fetchAndCacheTopContent,
+  TOP_TRACKS_SOURCES,
+  TOP_CURATORS_SOURCES,
+} from "../lib/songstats-api";
 import { loadSettings, getAutoFetchState, recordFetch } from "../lib/settings";
-import { DailyStat, PlatformStats, AppSettings } from "../lib/types";
+import { DailyStat, PlatformStats, AppSettings, TopTrack, TopCurator } from "../lib/types";
 import { DSP_NAMES } from "../lib/constants";
 import { format, subDays } from "date-fns";
 
@@ -32,6 +41,8 @@ export function Dashboard({ onReset }: DashboardProps) {
   const [period, setPeriod] = useState(30);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   const [fetchesToday, setFetchesToday] = useState(0);
+  const [cachedTopTracks, setCachedTopTracks] = useState<Map<string, TopTrack[]>>(new Map());
+  const [cachedTopCurators, setCachedTopCurators] = useState<Map<string, TopCurator[]>>(new Map());
 
   const loadData = useCallback(async () => {
     const s = await loadSettings();
@@ -57,6 +68,12 @@ export function Dashboard({ onReset }: DashboardProps) {
 
     const count = await getMonthlyApiCount();
     setApiCount(count);
+
+    // Load cached top tracks/curators from DB
+    const tracks = await getAllCachedTopTracks();
+    setCachedTopTracks(tracks);
+    const curators = await getAllCachedTopCurators();
+    setCachedTopCurators(curators);
   }, []);
 
   useEffect(() => {
@@ -67,11 +84,20 @@ export function Dashboard({ onReset }: DashboardProps) {
     if (!settings) return;
     setLoading(true);
     try {
+      const isFirstFetchToday = fetchesToday === 0;
       await fetchAllStats(
         settings.api_key,
         settings.spotify_artist_id,
         settings.enabled_sources
       );
+      if (isFirstFetchToday) {
+        await fetchAndCacheTopContent(
+          settings.api_key,
+          settings.spotify_artist_id,
+          TOP_TRACKS_SOURCES,
+          TOP_CURATORS_SOURCES
+        );
+      }
       await recordFetch();
       setFetchesToday((prev) => prev + 1);
       await loadData();
@@ -79,12 +105,13 @@ export function Dashboard({ onReset }: DashboardProps) {
       console.error("Fetch failed:", err);
     }
     setLoading(false);
-  }, [settings, loadData]);
+  }, [settings, loadData, fetchesToday]);
 
   const handleFetchWithInfo = async () => {
     if (!settings) return;
     setLoading(true);
     try {
+      const isFirstFetchToday = fetchesToday === 0;
       const info = await getArtistInfo(
         settings.api_key,
         settings.spotify_artist_id
@@ -95,6 +122,14 @@ export function Dashboard({ onReset }: DashboardProps) {
         settings.spotify_artist_id,
         settings.enabled_sources
       );
+      if (isFirstFetchToday) {
+        await fetchAndCacheTopContent(
+          settings.api_key,
+          settings.spotify_artist_id,
+          TOP_TRACKS_SOURCES,
+          TOP_CURATORS_SOURCES
+        );
+      }
       await recordFetch();
       setFetchesToday((prev) => prev + 1);
       await loadData();
@@ -151,6 +186,14 @@ export function Dashboard({ onReset }: DashboardProps) {
             settings.spotify_artist_id,
             settings.enabled_sources
           );
+          if (effectiveCount === 0) {
+            await fetchAndCacheTopContent(
+              settings.api_key,
+              settings.spotify_artist_id,
+              TOP_TRACKS_SOURCES,
+              TOP_CURATORS_SOURCES
+            );
+          }
           await recordFetch();
           setFetchesToday((prev) => prev + 1);
           await loadData();
@@ -213,8 +256,8 @@ export function Dashboard({ onReset }: DashboardProps) {
         source={selectedPlatform}
         stats={latestStats.get(selectedPlatform) ?? {}}
         historicStats={platformHistoric}
-        apiKey={settings.api_key}
-        spotifyArtistId={settings.spotify_artist_id}
+        topTracks={cachedTopTracks.get(selectedPlatform) ?? []}
+        topCurators={cachedTopCurators.get(selectedPlatform) ?? []}
         onBack={() => setSelectedPlatform(null)}
       />
     );
