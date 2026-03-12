@@ -4,11 +4,15 @@
 
 Desktop app for tracking music streaming statistics across platforms (Spotify, Apple Music, YouTube, TikTok, etc.). Built with **Tauri 2 + React 19 + TypeScript 5.9 + Rust**.
 
+## Environment
+
+- Cargo/Rust toolchain is installed at `~/.cargo/bin` but is **not** on the default shell PATH. Prefix Rust/Tauri commands with `export PATH="$HOME/.cargo/bin:$PATH" &&` when running them.
+
 ## Commands
 
 - `npm run dev` — Vite dev server only (no Tauri backend)
 - `npx tauri dev` — Full development mode (Rust backend + Vite frontend)
-- `npx tauri build --bundles app` — Production build
+- `npx tauri build --bundles app,dmg` — Production build (app + DMG installer)
 - `npm run build` — Frontend-only build (TypeScript + Vite)
 - `npm test` — Run frontend tests once
 - `npm run test:watch` — Run frontend tests in watch mode
@@ -133,7 +137,7 @@ Frontend communicates with backend via Tauri's IPC (`invoke`). API calls go thro
 
 ### Building
 
-- After every code change, rebuild the app with `npx tauri build --bundles app` to verify the production build succeeds.
+- After every code change, rebuild the app with `npx tauri build --bundles app,dmg` to verify the production build succeeds and regenerate the DMG installer.
 
 ### General
 - The app identifier is `com.streamingstats.app`. Don't change it without updating all platform configs.

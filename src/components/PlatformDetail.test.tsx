@@ -80,18 +80,69 @@ describe("PlatformDetail", () => {
     expect(screen.getByText("90d")).toBeInTheDocument();
   });
 
-  it("renders today's play count card for spotify", () => {
-    render(<PlatformDetail {...defaultProps} />);
-    // Hero is monthly_listeners, play count is streams — card should show
-    expect(screen.getByText("Today's Streams")).toBeInTheDocument();
-    expect(screen.getByText("100.0K")).toBeInTheDocument();
+  it("renders daily streams chart with rolling average from cumulative data", () => {
+    // Need 2+ days of cumulative data for rolling average to produce output
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    render(
+      <PlatformDetail
+        {...defaultProps}
+        historicStats={[
+          { date: yesterday, source: "spotify", stat_type: "monthly_listeners", value: 49000 },
+          { date: today, source: "spotify", stat_type: "monthly_listeners", value: 50000 },
+          { date: yesterday, source: "spotify", stat_type: "streams", value: 90000 },
+          { date: today, source: "spotify", stat_type: "streams", value: 100000 },
+        ]}
+      />
+    );
+    const charts = screen.getAllByTestId("trend-chart");
+    expect(charts).toHaveLength(2);
+    expect(charts[0]).toHaveTextContent("Monthly Listeners over time");
+    expect(charts[1]).toHaveTextContent("Daily Streams (14d avg)");
   });
 
-  it("does not render play count card when it matches hero stat", () => {
-    // YouTube: hero=views, play count=views → should NOT show card
+  it("does not render second chart when play count matches trend stat", () => {
+    const today = new Date().toISOString().slice(0, 10);
     render(
-      <PlatformDetail {...defaultProps} source="youtube" stats={{ views: 5000, followers: 200 }} />
+      <PlatformDetail
+        {...defaultProps}
+        source="youtube"
+        stats={{ views: 5000, followers: 200 }}
+        historicStats={[{ date: today, source: "youtube", stat_type: "views", value: 5000 }]}
+      />
     );
-    expect(screen.queryByText(/Today's/)).not.toBeInTheDocument();
+    const charts = screen.getAllByTestId("trend-chart");
+    expect(charts).toHaveLength(1);
+  });
+
+  it("does not render daily chart when only 1 day of cumulative data exists", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    render(
+      <PlatformDetail
+        {...defaultProps}
+        historicStats={[
+          { date: today, source: "spotify", stat_type: "monthly_listeners", value: 50000 },
+          { date: today, source: "spotify", stat_type: "streams", value: 100000 },
+        ]}
+      />
+    );
+    const charts = screen.getAllByTestId("trend-chart");
+    // Only monthly_listeners chart — not enough data for rolling average
+    expect(charts).toHaveLength(1);
+  });
+
+  it("does not render second chart when playCountKey equals trendStatType", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    render(
+      <PlatformDetail
+        {...defaultProps}
+        source="youtube"
+        stats={{ views: 5000, followers: 200 }}
+        historicStats={[{ date: today, source: "youtube", stat_type: "views", value: 5000 }]}
+      />
+    );
+    const charts = screen.getAllByTestId("trend-chart");
+    // Only one chart — playCountKey (views) === trendStatType (views)
+    expect(charts).toHaveLength(1);
   });
 });
