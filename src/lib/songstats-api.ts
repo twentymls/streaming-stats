@@ -227,6 +227,7 @@ export async function fetchTopCurators(
 }
 
 const TOP_TRACKS_METRIC: Record<string, string> = {
+  spotify: "streams",
   tiktok: "videos",
   youtube: "views",
   shazam: "shazams",

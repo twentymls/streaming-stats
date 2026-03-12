@@ -82,16 +82,13 @@ export function Dashboard({ onReset }: DashboardProps) {
     if (!settings) return;
     setLoading(true);
     try {
-      const isFirstFetchToday = fetchesToday === 0;
       await fetchAllStats(settings.api_key, settings.spotify_artist_id, settings.enabled_sources);
-      if (isFirstFetchToday) {
-        await fetchAndCacheTopContent(
-          settings.api_key,
-          settings.spotify_artist_id,
-          TOP_TRACKS_SOURCES,
-          TOP_CURATORS_SOURCES
-        );
-      }
+      await fetchAndCacheTopContent(
+        settings.api_key,
+        settings.spotify_artist_id,
+        TOP_TRACKS_SOURCES,
+        TOP_CURATORS_SOURCES
+      );
       await recordFetch();
       setFetchesToday((prev) => prev + 1);
       await loadData();
@@ -99,24 +96,21 @@ export function Dashboard({ onReset }: DashboardProps) {
       console.error("Fetch failed:", err);
     }
     setLoading(false);
-  }, [settings, loadData, fetchesToday]);
+  }, [settings, loadData]);
 
   const handleFetchWithInfo = async () => {
     if (!settings) return;
     setLoading(true);
     try {
-      const isFirstFetchToday = fetchesToday === 0;
       const info = await getArtistInfo(settings.api_key, settings.spotify_artist_id);
       setArtistName(info.name);
       await fetchAllStats(settings.api_key, settings.spotify_artist_id, settings.enabled_sources);
-      if (isFirstFetchToday) {
-        await fetchAndCacheTopContent(
-          settings.api_key,
-          settings.spotify_artist_id,
-          TOP_TRACKS_SOURCES,
-          TOP_CURATORS_SOURCES
-        );
-      }
+      await fetchAndCacheTopContent(
+        settings.api_key,
+        settings.spotify_artist_id,
+        TOP_TRACKS_SOURCES,
+        TOP_CURATORS_SOURCES
+      );
       await recordFetch();
       setFetchesToday((prev) => prev + 1);
       await loadData();
