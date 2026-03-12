@@ -9,6 +9,7 @@ import {
   getMonthlyApiCount,
   getAllCachedTopTracks,
   getAllCachedTopCurators,
+  getTopTrackDeltas,
 } from "../lib/database";
 import {
   fetchAllStats,
@@ -41,6 +42,7 @@ export function Dashboard({ onReset }: DashboardProps) {
   const [fetchesToday, setFetchesToday] = useState(0);
   const [cachedTopTracks, setCachedTopTracks] = useState<Map<string, TopTrack[]>>(new Map());
   const [cachedTopCurators, setCachedTopCurators] = useState<Map<string, TopCurator[]>>(new Map());
+  const [topTrackDeltas, setTopTrackDeltas] = useState<Map<string, Map<string, number>>>(new Map());
 
   const loadData = useCallback(async () => {
     const s = await loadSettings();
@@ -72,6 +74,14 @@ export function Dashboard({ onReset }: DashboardProps) {
     setCachedTopTracks(tracks);
     const curators = await getAllCachedTopCurators();
     setCachedTopCurators(curators);
+
+    // Load top track deltas for TikTok and YouTube
+    const deltas = new Map<string, Map<string, number>>();
+    for (const src of ["tiktok", "youtube"]) {
+      const d = await getTopTrackDeltas(src);
+      if (d.size > 0) deltas.set(src, d);
+    }
+    setTopTrackDeltas(deltas);
   }, []);
 
   useEffect(() => {
@@ -235,6 +245,7 @@ export function Dashboard({ onReset }: DashboardProps) {
         historicStats={platformHistoric}
         topTracks={cachedTopTracks.get(selectedPlatform) ?? []}
         topCurators={cachedTopCurators.get(selectedPlatform) ?? []}
+        topTrackDeltas={topTrackDeltas.get(selectedPlatform)}
         onBack={() => setSelectedPlatform(null)}
       />
     );

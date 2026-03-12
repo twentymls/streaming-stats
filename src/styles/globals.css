@@ -531,6 +531,21 @@ body {
   margin-top: 0.25rem;
 }
 
+.yesterday-badge {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4ade80;
+  margin-left: 0.75rem;
+  vertical-align: middle;
+}
+
+.yesterday-badge-sm {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #4ade80;
+  margin-left: 0.4rem;
+}
+
 .detail-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

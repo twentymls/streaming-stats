@@ -112,6 +112,17 @@ export function computeRollingAverageDeltas(
   return result;
 }
 
+export function computeYesterdayDelta(stats: DailyStat[], statType: string): number | null {
+  const filtered = stats
+    .filter((s) => s.stat_type === statType)
+    .sort((a, b) => b.date.localeCompare(a.date)); // most recent first
+
+  if (filtered.length < 2) return null;
+
+  const delta = filtered[0].value - filtered[1].value;
+  return delta > 0 ? delta : null;
+}
+
 const PLAY_COUNT_FALLBACK = ["streams", "views", "plays", "creates", "shazams"];
 
 export function getPlayCountStat(

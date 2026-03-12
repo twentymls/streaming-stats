@@ -3,7 +3,14 @@ import { RAPIDAPI_BASE_URL, RAPIDAPI_HOST } from "./constants";
 import { ArtistInfo, PlatformStats, TopTrack, TopCurator } from "./types";
 import { logApiCall, saveDailyStat, saveTopTracks, saveTopCurators } from "./database";
 
-export const TOP_TRACKS_SOURCES = ["spotify", "tiktok", "youtube", "apple_music", "shazam", "soundcloud"];
+export const TOP_TRACKS_SOURCES = [
+  "spotify",
+  "tiktok",
+  "youtube",
+  "apple_music",
+  "shazam",
+  "soundcloud",
+];
 export const TOP_CURATORS_SOURCES = ["tiktok"];
 
 async function apiGet(

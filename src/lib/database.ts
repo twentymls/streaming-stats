@@ -222,6 +222,25 @@ export async function getLatestTopCurators(source: string): Promise<TopCurator[]
   }));
 }
 
+export async function getTopTrackDeltas(source: string): Promise<Map<string, number>> {
+  const database = await getDb();
+  const rows = await database.select<{ title: string; delta: number }[]>(
+    `SELECT t1.title, (t1.streams - t2.streams) as delta
+     FROM top_tracks t1
+     JOIN top_tracks t2 ON t1.source = t2.source AND t1.title = t2.title
+     WHERE t1.source = $1
+       AND t1.date = (SELECT MAX(date) FROM top_tracks WHERE source = $1)
+       AND t2.date = (SELECT MAX(date) FROM top_tracks WHERE source = $1 AND date < (SELECT MAX(date) FROM top_tracks WHERE source = $1))
+       AND (t1.streams - t2.streams) > 0`,
+    [source]
+  );
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    map.set(r.title, r.delta);
+  }
+  return map;
+}
+
 export async function getAllCachedTopTracks(): Promise<Map<string, TopTrack[]>> {
   const database = await getDb();
   const rows = await database.select<

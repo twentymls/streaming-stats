@@ -8,6 +8,7 @@ import {
   getHeroStat,
   PLAY_COUNT_STAT,
   computeRollingAverageDeltas,
+  computeYesterdayDelta,
 } from "../lib/utils";
 
 interface PlatformDetailProps {
@@ -16,6 +17,7 @@ interface PlatformDetailProps {
   historicStats: DailyStat[];
   topTracks: TopTrack[];
   topCurators: TopCurator[];
+  topTrackDeltas?: Map<string, number>;
   onBack: () => void;
 }
 
@@ -42,6 +44,7 @@ export function PlatformDetail({
   historicStats,
   topTracks,
   topCurators,
+  topTrackDeltas,
   onBack,
 }: PlatformDetailProps) {
   const [period, setPeriod] = useState(30);
@@ -63,6 +66,17 @@ export function PlatformDetail({
     youtube: ["monthly_audience", "followers"],
     apple_music: ["playlist_reach"],
   };
+
+  // Compute yesterday's delta for each stat type
+  const yesterdayDeltas = useMemo(() => {
+    const deltas: Record<string, number> = {};
+    const statTypes = new Set(historicStats.map((s) => s.stat_type));
+    for (const st of statTypes) {
+      const delta = computeYesterdayDelta(historicStats, st);
+      if (delta != null) deltas[st] = delta;
+    }
+    return deltas;
+  }, [historicStats]);
 
   const preferredStats = TREND_STAT_PREFERENCE[source] ?? [];
   const trendStatType =
@@ -93,7 +107,12 @@ export function PlatformDetail({
 
       {hero && (
         <div className="detail-hero" style={{ borderLeft: `4px solid ${color}` }}>
-          <div className="detail-hero-value">{formatNumber(hero.value)}</div>
+          <div className="detail-hero-value">
+            {formatNumber(hero.value)}
+            {yesterdayDeltas[hero.key] != null && (
+              <span className="yesterday-badge">+{formatNumber(yesterdayDeltas[hero.key])}</span>
+            )}
+          </div>
           <div className="detail-hero-label">{DSP_STAT_LABELS[hero.key] ?? hero.key}</div>
         </div>
       )}
@@ -103,7 +122,12 @@ export function PlatformDetail({
           .filter(([k]) => k !== hero?.key)
           .map(([key, value]) => (
             <div key={key} className="detail-stat-card">
-              <div className="detail-stat-value">{formatNumber(value)}</div>
+              <div className="detail-stat-value">
+                {formatNumber(value)}
+                {yesterdayDeltas[key] != null && (
+                  <span className="yesterday-badge-sm">+{formatNumber(yesterdayDeltas[key])}</span>
+                )}
+              </div>
               <div className="detail-stat-label">{DSP_STAT_LABELS[key] ?? key}</div>
             </div>
           ))}
@@ -125,6 +149,11 @@ export function PlatformDetail({
                   <div className="top-track-title">{track.title}</div>
                   <div className="top-track-streams">
                     {formatNumber(track.streams)} {trendStatType === "views" ? "views" : "streams"}
+                    {topTrackDeltas?.get(track.title) != null && (
+                      <span className="yesterday-badge-sm">
+                        +{formatNumber(topTrackDeltas.get(track.title)!)} ieri
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

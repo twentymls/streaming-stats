@@ -4,6 +4,7 @@ import {
   getPlayCountStat,
   computeDailyDeltas,
   computeRollingAverageDeltas,
+  computeYesterdayDelta,
   HERO_STAT_PRIORITY,
   PLAY_COUNT_STAT,
 } from "./utils";
@@ -247,5 +248,37 @@ describe("computeRollingAverageDeltas", () => {
     for (const entry of result) {
       expect(entry.value).toBe(1000);
     }
+  });
+});
+
+describe("computeYesterdayDelta", () => {
+  it("returns delta between the two most recent days", () => {
+    const stats = [
+      { date: "2025-01-01", source: "tiktok", stat_type: "creates", value: 1000 },
+      { date: "2025-01-02", source: "tiktok", stat_type: "creates", value: 1150 },
+    ];
+    expect(computeYesterdayDelta(stats, "creates")).toBe(150);
+  });
+
+  it("returns null when less than 2 data points", () => {
+    const stats = [{ date: "2025-01-01", source: "tiktok", stat_type: "creates", value: 1000 }];
+    expect(computeYesterdayDelta(stats, "creates")).toBeNull();
+  });
+
+  it("returns null when delta is zero or negative", () => {
+    const stats = [
+      { date: "2025-01-01", source: "youtube", stat_type: "views", value: 5000 },
+      { date: "2025-01-02", source: "youtube", stat_type: "views", value: 5000 },
+    ];
+    expect(computeYesterdayDelta(stats, "views")).toBeNull();
+  });
+
+  it("picks most recent two dates regardless of input order", () => {
+    const stats = [
+      { date: "2025-01-03", source: "tiktok", stat_type: "creates", value: 2000 },
+      { date: "2025-01-01", source: "tiktok", stat_type: "creates", value: 1000 },
+      { date: "2025-01-02", source: "tiktok", stat_type: "creates", value: 1500 },
+    ];
+    expect(computeYesterdayDelta(stats, "creates")).toBe(500);
   });
 });
