@@ -11,7 +11,7 @@ import {
   Legend,
   Filler,
 } from "chart.js";
-import { Line, Doughnut } from "react-chartjs-2";
+import { Line } from "react-chartjs-2";
 import { DailyStat } from "../lib/types";
 import { DSP_COLORS, DSP_NAMES } from "../lib/constants";
 
@@ -89,43 +89,6 @@ export function TrendChart({ stats, title, statType }: StatsChartProps) {
             y: {
               ticks: { color: "#888" },
               grid: { color: "#333" },
-            },
-          },
-        }}
-      />
-    </div>
-  );
-}
-
-interface DistributionChartProps {
-  platformStats: Array<{ source: string; total: number }>;
-  title: string;
-}
-
-export function DistributionChart({ platformStats, title }: DistributionChartProps) {
-  const filtered = platformStats.filter((p) => p.total > 0);
-
-  return (
-    <div className="chart-container chart-small">
-      <h3>{title}</h3>
-      <Doughnut
-        data={{
-          labels: filtered.map((p) => DSP_NAMES[p.source] ?? p.source),
-          datasets: [
-            {
-              data: filtered.map((p) => p.total),
-              backgroundColor: filtered.map((p) => DSP_COLORS[p.source] ?? "#888"),
-              borderWidth: 0,
-            },
-          ],
-        }}
-        options={{
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: "right",
-              labels: { color: "#aaa", boxWidth: 12 },
             },
           },
         }}

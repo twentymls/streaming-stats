@@ -9,6 +9,12 @@ export const DSP_COLORS: Record<string, string> = {
   soundcloud: "#FF5500",
 };
 
+/** Chart-safe colors — overrides TikTok's #010101 which is invisible on dark backgrounds */
+export const DSP_CHART_COLORS: Record<string, string> = {
+  ...DSP_COLORS,
+  tiktok: "#69C9D0",
+};
+
 export const DSP_NAMES: Record<string, string> = {
   spotify: "Spotify",
   apple_music: "Apple Music",

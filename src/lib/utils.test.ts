@@ -5,6 +5,7 @@ import {
   computeDailyDeltas,
   computeRollingAverageDeltas,
   computeYesterdayDelta,
+  computeAllPlatformDeltas,
   HERO_STAT_PRIORITY,
   PLAY_COUNT_STAT,
 } from "./utils";
@@ -280,5 +281,127 @@ describe("computeYesterdayDelta", () => {
       { date: "2025-01-02", source: "tiktok", stat_type: "creates", value: 1500 },
     ];
     expect(computeYesterdayDelta(stats, "creates")).toBe(500);
+  });
+});
+
+describe("computeAllPlatformDeltas", () => {
+  it("computes daily deltas across multiple platforms", () => {
+    const stats = [
+      { date: "2025-01-01", source: "spotify", stat_type: "streams", value: 1000 },
+      { date: "2025-01-02", source: "spotify", stat_type: "streams", value: 1200 },
+      { date: "2025-01-03", source: "spotify", stat_type: "streams", value: 1500 },
+      { date: "2025-01-01", source: "youtube", stat_type: "views", value: 5000 },
+      { date: "2025-01-02", source: "youtube", stat_type: "views", value: 5300 },
+      { date: "2025-01-03", source: "youtube", stat_type: "views", value: 5800 },
+    ];
+    const result = computeAllPlatformDeltas(stats);
+    expect(result.dailyPoints).toHaveLength(2);
+    expect(result.dailyPoints[0].deltas.spotify).toBe(200);
+    expect(result.dailyPoints[0].deltas.youtube).toBe(300);
+    expect(result.dailyPoints[0].total).toBe(500);
+  });
+
+  it("clamps negative deltas to zero", () => {
+    const stats = [
+      { date: "2025-01-01", source: "spotify", stat_type: "streams", value: 1000 },
+      { date: "2025-01-02", source: "spotify", stat_type: "streams", value: 900 },
+    ];
+    const result = computeAllPlatformDeltas(stats);
+    expect(result.dailyPoints[0].deltas.spotify).toBe(0);
+  });
+
+  it("computes platform summaries sorted by total growth", () => {
+    const stats = [
+      { date: "2025-01-01", source: "spotify", stat_type: "streams", value: 1000 },
+      { date: "2025-01-02", source: "spotify", stat_type: "streams", value: 1100 },
+      { date: "2025-01-01", source: "youtube", stat_type: "views", value: 5000 },
+      { date: "2025-01-02", source: "youtube", stat_type: "views", value: 5500 },
+    ];
+    const result = computeAllPlatformDeltas(stats);
+    expect(result.platformSummaries).toHaveLength(2);
+    // YouTube has 500 growth vs Spotify's 100
+    expect(result.platformSummaries[0].source).toBe("youtube");
+    expect(result.platformSummaries[0].totalGrowth).toBe(500);
+    expect(result.platformSummaries[1].source).toBe("spotify");
+    expect(result.platformSummaries[1].totalGrowth).toBe(100);
+  });
+
+  it("computes share percentages", () => {
+    const stats = [
+      { date: "2025-01-01", source: "spotify", stat_type: "streams", value: 0 },
+      { date: "2025-01-02", source: "spotify", stat_type: "streams", value: 400 },
+      { date: "2025-01-01", source: "youtube", stat_type: "views", value: 0 },
+      { date: "2025-01-02", source: "youtube", stat_type: "views", value: 600 },
+    ];
+    const result = computeAllPlatformDeltas(stats);
+    expect(result.platformSummaries[0].sharePercent).toBeCloseTo(60);
+    expect(result.platformSummaries[1].sharePercent).toBeCloseTo(40);
+  });
+
+  it("identifies best day correctly", () => {
+    const stats = [
+      { date: "2025-01-01", source: "spotify", stat_type: "streams", value: 1000 },
+      { date: "2025-01-02", source: "spotify", stat_type: "streams", value: 1100 },
+      { date: "2025-01-03", source: "spotify", stat_type: "streams", value: 1600 },
+    ];
+    const result = computeAllPlatformDeltas(stats);
+    expect(result.aggregateStats.bestDay.date).toBe("2025-01-03");
+    expect(result.aggregateStats.bestDay.total).toBe(500);
+  });
+
+  it("identifies top platform correctly", () => {
+    const stats = [
+      { date: "2025-01-01", source: "spotify", stat_type: "streams", value: 1000 },
+      { date: "2025-01-02", source: "spotify", stat_type: "streams", value: 1100 },
+      { date: "2025-01-01", source: "tiktok", stat_type: "views", value: 5000 },
+      { date: "2025-01-02", source: "tiktok", stat_type: "views", value: 5800 },
+    ];
+    const result = computeAllPlatformDeltas(stats);
+    expect(result.aggregateStats.topPlatform.source).toBe("tiktok");
+  });
+
+  it("returns empty data for empty input", () => {
+    const result = computeAllPlatformDeltas([]);
+    expect(result.dailyPoints).toHaveLength(0);
+    expect(result.platformSummaries).toHaveLength(0);
+    expect(result.aggregateStats.todayTotal).toBe(0);
+  });
+
+  it("returns empty data for single data point per platform", () => {
+    const stats = [{ date: "2025-01-01", source: "spotify", stat_type: "streams", value: 1000 }];
+    const result = computeAllPlatformDeltas(stats);
+    expect(result.dailyPoints).toHaveLength(0);
+  });
+
+  it("uses rolling averages when smoothed is true", () => {
+    // Create data with an uneven catch-up to test smoothing
+    const stats = [
+      { date: "2025-01-01", source: "spotify", stat_type: "streams", value: 100000 },
+      { date: "2025-01-02", source: "spotify", stat_type: "streams", value: 101000 },
+      { date: "2025-01-03", source: "spotify", stat_type: "streams", value: 102000 },
+      { date: "2025-01-04", source: "spotify", stat_type: "streams", value: 103000 },
+      { date: "2025-01-05", source: "spotify", stat_type: "streams", value: 150000 }, // big catch-up
+    ];
+    const raw = computeAllPlatformDeltas(stats, false);
+    const smoothed = computeAllPlatformDeltas(stats, true);
+
+    // Raw last delta should be 47000 (the catch-up)
+    const rawLastTotal = raw.dailyPoints[raw.dailyPoints.length - 1].total;
+    expect(rawLastTotal).toBe(47000);
+
+    // Smoothed last value should be much less extreme
+    const smoothedLastTotal = smoothed.dailyPoints[smoothed.dailyPoints.length - 1].total;
+    expect(smoothedLastTotal).toBeLessThan(rawLastTotal);
+    expect(smoothedLastTotal).toBeGreaterThan(0);
+  });
+
+  it("ignores platforms without a play-count stat mapping", () => {
+    const stats = [
+      { date: "2025-01-01", source: "unknown_platform", stat_type: "custom", value: 1000 },
+      { date: "2025-01-02", source: "unknown_platform", stat_type: "custom", value: 1500 },
+    ];
+    const result = computeAllPlatformDeltas(stats);
+    expect(result.dailyPoints).toHaveLength(0);
+    expect(result.platformSummaries).toHaveLength(0);
   });
 });

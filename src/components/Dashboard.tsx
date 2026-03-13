@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { PlatformCard } from "./PlatformCard";
 import { PlatformDetail } from "./PlatformDetail";
-import { TrendChart, DistributionChart } from "./StatsChart";
+import { KpiRow } from "./KpiRow";
+import { DailyGrowthChart } from "./DailyGrowthChart";
+import { GrowthShare } from "./GrowthShare";
 import { Settings } from "./Settings";
 import {
   getLatestStats,
@@ -25,6 +27,11 @@ import {
 import { loadSettings, getAutoFetchState, recordFetch } from "../lib/settings";
 import type { DailyStat, AppSettings, TopTrack, TopCurator } from "../lib/types";
 import { DSP_NAMES } from "../lib/constants";
+import {
+  computeAllPlatformDeltas,
+  computeRollingAverageDeltas,
+  PLAY_COUNT_STAT,
+} from "../lib/utils";
 import { format, subDays } from "date-fns";
 
 interface DashboardProps {
@@ -240,11 +247,34 @@ export function Dashboard({ onReset }: DashboardProps) {
     };
   }, [settings?.api_key]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [smoothed, setSmoothed] = useState(false);
+
   // Must be above early returns to keep hook order stable
   const dashboardHistoric = useMemo(() => {
     const cutoff = format(subDays(new Date(), period), "yyyy-MM-dd");
     return historicStats.filter((s) => s.date >= cutoff);
   }, [historicStats, period]);
+
+  const chartData = useMemo(
+    () => computeAllPlatformDeltas(dashboardHistoric, smoothed),
+    [dashboardHistoric, smoothed]
+  );
+
+  // Rolling-average daily values for Spotify/YouTube KPI cards
+  // Uses the same calculation as the platform detail pages (14-day window)
+  const kpiPlatformDeltas = useMemo(() => {
+    const result: Record<string, number> = {};
+    for (const source of ["spotify", "youtube"]) {
+      const statType = PLAY_COUNT_STAT[source];
+      if (!statType) continue;
+      const sourceStats = dashboardHistoric.filter((s) => s.source === source);
+      const rollingAvg = computeRollingAverageDeltas(sourceStats, statType);
+      if (rollingAvg.length > 0) {
+        result[source] = rollingAvg[rollingAvg.length - 1].value;
+      }
+    }
+    return result;
+  }, [dashboardHistoric]);
 
   if (showSettings) {
     return (
@@ -273,12 +303,6 @@ export function Dashboard({ onReset }: DashboardProps) {
       />
     );
   }
-
-  // Prepare distribution data
-  const distribution = Array.from(latestStats.entries()).map(([source, stats]) => ({
-    source,
-    total: stats.streams ?? stats.views ?? stats.creates ?? stats.shazams ?? 0,
-  }));
 
   return (
     <>
@@ -342,31 +366,36 @@ export function Dashboard({ onReset }: DashboardProps) {
                 ))}
             </section>
 
-            {dashboardHistoric.length > 0 && (
+            {chartData.dailyPoints.length > 0 && (
               <section className="charts-section">
-                <div className="period-selector">
-                  {[7, 30, 60, 90].map((d) => (
-                    <button
-                      key={d}
-                      className={`btn btn-sm ${period === d ? "active" : ""}`}
-                      onClick={() => setPeriod(d)}
-                    >
-                      {d}d
-                    </button>
-                  ))}
+                <div className="charts-toolbar">
+                  <div className="period-selector">
+                    {[7, 30, 60, 90].map((d) => (
+                      <button
+                        key={d}
+                        className={`btn btn-sm ${period === d ? "active" : ""}`}
+                        onClick={() => setPeriod(d)}
+                      >
+                        {d}d
+                      </button>
+                    ))}
+                  </div>
+                  <label className="smooth-toggle">
+                    <input
+                      type="checkbox"
+                      checked={smoothed}
+                      onChange={(e) => setSmoothed(e.target.checked)}
+                    />
+                    Smooth (7-day avg)
+                  </label>
                 </div>
 
-                <div className="charts-grid">
-                  <TrendChart
-                    stats={dashboardHistoric}
-                    title="Streams / Views over time"
-                    statType="streams"
-                  />
-                  <DistributionChart
-                    platformStats={distribution}
-                    title="Distribution by platform"
-                  />
-                </div>
+                <KpiRow stats={chartData.aggregateStats} platformDeltas={kpiPlatformDeltas} />
+                <DailyGrowthChart dailyPoints={chartData.dailyPoints} />
+                <GrowthShare
+                  summaries={chartData.platformSummaries}
+                  onPlatformClick={setSelectedPlatform}
+                />
               </section>
             )}
           </>

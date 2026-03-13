@@ -1,5 +1,25 @@
 import type { DailyStat } from "./types";
 
+export interface PlatformSummary {
+  source: string;
+  totalGrowth: number;
+  avgDailyGrowth: number;
+  sharePercent: number;
+}
+
+export interface AggregateStats {
+  todayTotal: number;
+  avgDailyTotal: number;
+  bestDay: { date: string; total: number };
+  topPlatform: { source: string; sharePercent: number };
+}
+
+export interface DashboardChartData {
+  dailyPoints: Array<{ date: string; deltas: Record<string, number>; total: number }>;
+  platformSummaries: PlatformSummary[];
+  aggregateStats: AggregateStats;
+}
+
 export function formatNumber(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
@@ -137,4 +157,94 @@ export function getPlayCountStat(
     if (stats[key] != null) return { key, value: stats[key] };
   }
   return null;
+}
+
+/**
+ * Computes aggregate daily growth data across all platforms.
+ * Uses each platform's primary play-count stat (streams/views/plays/shazams).
+ * When smoothed=true, uses rolling average deltas instead of raw deltas.
+ */
+export function computeAllPlatformDeltas(
+  stats: DailyStat[],
+  smoothed: boolean = false
+): DashboardChartData {
+  // Group stats by source
+  const sources = [...new Set(stats.map((s) => s.source))];
+
+  // Compute deltas per platform using their play-count stat
+  const platformDeltas = new Map<string, DailyStat[]>();
+  for (const source of sources) {
+    const statType = PLAY_COUNT_STAT[source];
+    if (!statType) continue;
+    const sourceStats = stats.filter((s) => s.source === source);
+    const deltas = smoothed
+      ? computeRollingAverageDeltas(sourceStats, statType)
+      : computeDailyDeltas(sourceStats, statType);
+    if (deltas.length > 0) {
+      platformDeltas.set(source, deltas);
+    }
+  }
+
+  // Collect all unique dates across all platforms
+  const allDates = new Set<string>();
+  for (const [, deltas] of platformDeltas) {
+    for (const d of deltas) {
+      allDates.add(d.date);
+    }
+  }
+  const sortedDates = [...allDates].sort();
+
+  // Build daily points
+  const dailyPoints = sortedDates.map((date) => {
+    const deltas: Record<string, number> = {};
+    let total = 0;
+    for (const [source, sourceDeltaList] of platformDeltas) {
+      const entry = sourceDeltaList.find((d) => d.date === date);
+      const value = entry?.value ?? 0;
+      deltas[source] = value;
+      total += value;
+    }
+    return { date, deltas, total };
+  });
+
+  // Platform summaries
+  const platformTotals = new Map<string, number>();
+  for (const [source, deltas] of platformDeltas) {
+    const total = deltas.reduce((sum, d) => sum + d.value, 0);
+    platformTotals.set(source, total);
+  }
+  const grandTotal = [...platformTotals.values()].reduce((a, b) => a + b, 0);
+  const numDays = sortedDates.length || 1;
+
+  const platformSummaries: PlatformSummary[] = [...platformTotals.entries()]
+    .map(([source, totalGrowth]) => ({
+      source,
+      totalGrowth,
+      avgDailyGrowth: Math.round(totalGrowth / numDays),
+      sharePercent: grandTotal > 0 ? (totalGrowth / grandTotal) * 100 : 0,
+    }))
+    .sort((a, b) => b.totalGrowth - a.totalGrowth);
+
+  // Aggregate stats
+  const todayTotal = dailyPoints.length > 0 ? dailyPoints[dailyPoints.length - 1].total : 0;
+  const avgDailyTotal = Math.round(grandTotal / numDays);
+  const bestDay =
+    dailyPoints.length > 0
+      ? dailyPoints.reduce((best, dp) => (dp.total > best.total ? dp : best))
+      : { date: "", total: 0 };
+  const topPlatform =
+    platformSummaries.length > 0
+      ? { source: platformSummaries[0].source, sharePercent: platformSummaries[0].sharePercent }
+      : { source: "", sharePercent: 0 };
+
+  return {
+    dailyPoints,
+    platformSummaries,
+    aggregateStats: {
+      todayTotal,
+      avgDailyTotal,
+      bestDay: { date: bestDay.date, total: bestDay.total },
+      topPlatform,
+    },
+  };
 }

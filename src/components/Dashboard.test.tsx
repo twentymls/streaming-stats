@@ -2,10 +2,17 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { Dashboard } from "./Dashboard";
 
-// Mock StatsChart — Chart.js doesn't work in jsdom
-vi.mock("./StatsChart", () => ({
-  TrendChart: () => <div data-testid="trend-chart" />,
-  DistributionChart: () => <div data-testid="distribution-chart" />,
+// Mock chart components — Chart.js doesn't work in jsdom
+vi.mock("./DailyGrowthChart", () => ({
+  DailyGrowthChart: () => <div data-testid="daily-growth-chart" />,
+}));
+
+vi.mock("./KpiRow", () => ({
+  KpiRow: () => <div data-testid="kpi-row" />,
+}));
+
+vi.mock("./GrowthShare", () => ({
+  GrowthShare: () => <div data-testid="growth-share" />,
 }));
 
 // Mock child components to keep tests focused
