@@ -13,6 +13,7 @@ describe("KpiRow", () => {
   it("renders today's growth with positive formatting", () => {
     render(<KpiRow stats={defaultStats} />);
     expect(screen.getByText("Today's Growth")).toBeInTheDocument();
+    expect(screen.getByText("All platforms combined")).toBeInTheDocument();
     expect(screen.getByText(/47\.2K/)).toBeInTheDocument();
   });
 

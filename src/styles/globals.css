@@ -680,6 +680,27 @@ body {
   letter-spacing: 0.04em;
 }
 
+.kpi-label-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  justify-content: center;
+}
+
+.kpi-value-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.kpi-hint {
+  font-size: 0.625rem;
+  color: var(--text-tertiary);
+  opacity: 0.6;
+  margin-top: 0.15rem;
+}
+
 /* Growth Share */
 .growth-share {
   background: var(--bg-surface);
