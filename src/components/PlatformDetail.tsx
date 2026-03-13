@@ -65,6 +65,7 @@ export function PlatformDetail({
     spotify: ["monthly_listeners"],
     youtube: ["monthly_audience", "followers"],
     apple_music: ["playlist_reach"],
+    tiktok: ["followers"],
   };
 
   // Compute yesterday's delta for each stat type
