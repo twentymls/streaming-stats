@@ -6,7 +6,7 @@ pub struct DailyStat {
     pub date: String,
     pub source: String,
     pub stat_type: String,
-    pub value: i64,
+    pub value: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -14,7 +14,7 @@ pub async fn get_latest_stats(pool: State<'_, DbPool>) -> Result<Vec<DailyStat>,
 
 async fn query_latest_stats(pool: &SqlitePool) -> Result<Vec<DailyStat>, sqlx::Error> {
     sqlx::query_as::<_, DailyStat>(
-        "SELECT id, date, source, stat_type, value FROM daily_stats \
+        "SELECT id, date, source, stat_type, CAST(value AS REAL) as value FROM daily_stats \
          WHERE date = (SELECT MAX(date) FROM daily_stats) \
          ORDER BY source, stat_type",
     )
@@ -42,29 +42,25 @@ async fn query_stats_range(
     source: Option<&str>,
 ) -> Result<Vec<DailyStat>, sqlx::Error> {
     match source {
-        Some(src) => {
-            sqlx::query_as::<_, DailyStat>(
-                "SELECT id, date, source, stat_type, value FROM daily_stats \
+        Some(src) => sqlx::query_as::<_, DailyStat>(
+            "SELECT id, date, source, stat_type, CAST(value AS REAL) as value FROM daily_stats \
                  WHERE date BETWEEN ? AND ? AND source = ? \
                  ORDER BY date, stat_type",
-            )
-            .bind(start_date)
-            .bind(end_date)
-            .bind(src)
-            .fetch_all(pool)
-            .await
-        }
-        None => {
-            sqlx::query_as::<_, DailyStat>(
-                "SELECT id, date, source, stat_type, value FROM daily_stats \
+        )
+        .bind(start_date)
+        .bind(end_date)
+        .bind(src)
+        .fetch_all(pool)
+        .await,
+        None => sqlx::query_as::<_, DailyStat>(
+            "SELECT id, date, source, stat_type, CAST(value AS REAL) as value FROM daily_stats \
                  WHERE date BETWEEN ? AND ? \
                  ORDER BY date, source, stat_type",
-            )
-            .bind(start_date)
-            .bind(end_date)
-            .fetch_all(pool)
-            .await
-        }
+        )
+        .bind(start_date)
+        .bind(end_date)
+        .fetch_all(pool)
+        .await,
     }
 }
 
@@ -278,7 +274,7 @@ pub async fn save_daily_stat(
     date: String,
     source: String,
     stat_type: String,
-    value: i64,
+    value: f64,
 ) -> Result<(), String> {
     let pool = pool.lock().await;
     query_save_daily_stat(&pool, &date, &source, &stat_type, value)
@@ -291,7 +287,7 @@ async fn query_save_daily_stat(
     date: &str,
     source: &str,
     stat_type: &str,
-    value: i64,
+    value: f64,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
         "INSERT OR REPLACE INTO daily_stats (date, source, stat_type, value) VALUES (?, ?, ?, ?)",
@@ -430,10 +426,10 @@ mod tests {
     #[tokio::test]
     async fn test_save_and_get_latest_stats() {
         let pool = test_pool().await;
-        query_save_daily_stat(&pool, "2025-01-15", "spotify", "streams", 50000)
+        query_save_daily_stat(&pool, "2025-01-15", "spotify", "streams", 50000.0)
             .await
             .unwrap();
-        query_save_daily_stat(&pool, "2025-01-15", "spotify", "followers", 1000)
+        query_save_daily_stat(&pool, "2025-01-15", "spotify", "followers", 1000.0)
             .await
             .unwrap();
 
@@ -441,21 +437,21 @@ mod tests {
         assert_eq!(stats.len(), 2);
         assert_eq!(stats[0].source, "spotify");
         assert_eq!(stats[0].stat_type, "followers");
-        assert_eq!(stats[0].value, 1000);
+        assert_eq!(stats[0].value, 1000.0);
         assert_eq!(stats[1].stat_type, "streams");
-        assert_eq!(stats[1].value, 50000);
+        assert_eq!(stats[1].value, 50000.0);
     }
 
     #[tokio::test]
     async fn test_get_stats_range_no_source() {
         let pool = test_pool().await;
-        query_save_daily_stat(&pool, "2025-01-10", "spotify", "streams", 100)
+        query_save_daily_stat(&pool, "2025-01-10", "spotify", "streams", 100.0)
             .await
             .unwrap();
-        query_save_daily_stat(&pool, "2025-01-15", "spotify", "streams", 200)
+        query_save_daily_stat(&pool, "2025-01-15", "spotify", "streams", 200.0)
             .await
             .unwrap();
-        query_save_daily_stat(&pool, "2025-01-20", "spotify", "streams", 300)
+        query_save_daily_stat(&pool, "2025-01-20", "spotify", "streams", 300.0)
             .await
             .unwrap();
 
@@ -463,17 +459,17 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(stats.len(), 2);
-        assert_eq!(stats[0].value, 100);
-        assert_eq!(stats[1].value, 200);
+        assert_eq!(stats[0].value, 100.0);
+        assert_eq!(stats[1].value, 200.0);
     }
 
     #[tokio::test]
     async fn test_get_stats_range_with_source() {
         let pool = test_pool().await;
-        query_save_daily_stat(&pool, "2025-01-15", "spotify", "streams", 100)
+        query_save_daily_stat(&pool, "2025-01-15", "spotify", "streams", 100.0)
             .await
             .unwrap();
-        query_save_daily_stat(&pool, "2025-01-15", "apple", "streams", 200)
+        query_save_daily_stat(&pool, "2025-01-15", "apple", "streams", 200.0)
             .await
             .unwrap();
 
@@ -510,7 +506,7 @@ mod tests {
         let date = query_last_fetch_date(&pool).await.unwrap();
         assert!(date.is_none());
 
-        query_save_daily_stat(&pool, "2025-01-15", "spotify", "streams", 100)
+        query_save_daily_stat(&pool, "2025-01-15", "spotify", "streams", 100.0)
             .await
             .unwrap();
 
@@ -668,16 +664,16 @@ mod tests {
     #[tokio::test]
     async fn test_save_daily_stat_upsert() {
         let pool = test_pool().await;
-        query_save_daily_stat(&pool, "2025-01-15", "spotify", "streams", 100)
+        query_save_daily_stat(&pool, "2025-01-15", "spotify", "streams", 100.0)
             .await
             .unwrap();
-        query_save_daily_stat(&pool, "2025-01-15", "spotify", "streams", 200)
+        query_save_daily_stat(&pool, "2025-01-15", "spotify", "streams", 200.0)
             .await
             .unwrap();
 
         let stats = query_latest_stats(&pool).await.unwrap();
         assert_eq!(stats.len(), 1);
-        assert_eq!(stats[0].value, 200);
+        assert_eq!(stats[0].value, 200.0);
     }
 
     #[tokio::test]
