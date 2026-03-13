@@ -15,7 +15,7 @@ This project is **open source** (MIT license). All code changes are publicly vis
 
 ## Project Overview
 
-Cross-platform app (desktop + mobile) for tracking music streaming statistics across platforms (Spotify, Apple Music, YouTube, TikTok, etc.). Built with **Tauri 2 + React 19 + TypeScript 5.9 + Rust**. Targets macOS, iOS, and Android.
+Cross-platform app (desktop + mobile) for tracking music streaming statistics across platforms (Spotify, Apple Music, YouTube, TikTok, etc.). Built with **Tauri 2 + React 19 + TypeScript 5.9 + Rust**. Targets macOS, Windows, iOS, and Android.
 
 ## Environment
 
@@ -25,7 +25,8 @@ Cross-platform app (desktop + mobile) for tracking music streaming statistics ac
 
 - `npm run dev` — Vite dev server only (no Tauri backend)
 - `npx tauri dev` — Full development mode (Rust backend + Vite frontend)
-- `npx tauri build --bundles app,dmg` — Production build (app + DMG installer)
+- `npx tauri build --bundles app,dmg` — Production macOS build (app + DMG installer)
+- `npx tauri build --bundles nsis` — Production Windows build (must run on Windows)
 - `npx tauri ios dev` — Run on iOS Simulator
 - `npx tauri ios build` — Production iOS build
 - `npx tauri android dev` — Run on Android Emulator

@@ -1,6 +1,6 @@
 # Streaming Stats
 
-A cross-platform app for desktop and mobile that tracks streaming stats for music artists across 8 platforms using the [Songstats API](https://rapidapi.com/songstats-app-songstats-app-default/api/songstats). Built with Tauri 2 (Rust + React). Runs on macOS, iOS, and Android.
+A cross-platform app for desktop and mobile that tracks streaming stats for music artists across 8 platforms using the [Songstats API](https://rapidapi.com/songstats-app-songstats-app-default/api/songstats). Built with Tauri 2 (Rust + React). Runs on macOS, Windows, iOS, and Android.
 
 <p align="center">
   <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="720" />
@@ -11,6 +11,7 @@ A cross-platform app for desktop and mobile that tracks streaming stats for musi
 | Platform | Status |
 |----------|--------|
 | macOS | Stable |
+| Windows | Supported |
 | iOS | Supported |
 | Android | Supported |
 
@@ -75,6 +76,10 @@ A 1.2 second delay is added between platform requests to stay within the per-sec
 - Tauri system dependencies — see [Tauri Prerequisites](https://v2.tauri.app/start/prerequisites/)
 - A [RapidAPI](https://rapidapi.com/) account with a Songstats API subscription
 
+**For Windows development:**
+- [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) (included in Windows 11; auto-installed on Windows 10 by the NSIS installer)
+- [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with the "Desktop development with C++" workload
+
 **For iOS development:**
 - Xcode 15+
 - CocoaPods: `sudo gem install cocoapods`
@@ -126,6 +131,9 @@ npx tauri android dev
 # Desktop (macOS)
 npx tauri build --bundles app
 
+# Desktop (Windows) — must be run on a Windows machine
+npx tauri build --bundles nsis
+
 # iOS
 npx tauri ios build
 
@@ -135,7 +143,8 @@ npx tauri android build
 
 Desktop output:
 ```
-src-tauri/target/release/bundle/macos/Streaming Stats.app
+src-tauri/target/release/bundle/macos/Streaming Stats.app              # macOS
+src-tauri/target/release/bundle/nsis/Streaming Stats_0.1.0_x64-setup.exe  # Windows
 ```
 
 ### Tests
@@ -193,7 +202,7 @@ See [`docs/`](docs/README.md) for detailed documentation on architecture, databa
 
 | Layer | Technology |
 |-------|-----------|
-| Platforms | macOS, iOS, Android |
+| Platforms | macOS, Windows, iOS, Android |
 | App framework | [Tauri v2](https://v2.tauri.app/) |
 | Frontend | React 19, TypeScript 5.9, Vite 6 |
 | Backend | Rust (Edition 2021) |

@@ -40,6 +40,15 @@ img-src 'self' https: data:
 - Frontend dist: `../dist` (relative to src-tauri)
 - Dev URL: `http://localhost:5173`
 
+### Bundle: macOS
+
+- Minimum system version: 10.15
+
+### Bundle: Windows
+
+- NSIS installer with `installMode: "both"` (supports per-user or machine-wide installation)
+- WebView2 is bundled automatically (included in Windows 11, auto-installed on Windows 10)
+
 ### Tray icon
 
 - Path: `icons/icon.png`
