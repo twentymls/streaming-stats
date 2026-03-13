@@ -325,10 +325,10 @@ export function Dashboard({ onReset }: DashboardProps) {
             <div className="api-badge">API: {apiCount}/500</div>
             <button
               onClick={latestStats.size === 0 ? handleFetchWithInfo : handleFetch}
-              disabled={loading || fetchesToday >= 10}
+              disabled={loading || fetchesToday >= 1}
               className="btn btn-primary"
             >
-              {loading ? "Updating..." : fetchesToday >= 10 ? "Done for today" : "Update"}
+              {loading ? "Updating..." : fetchesToday >= 1 ? "Done for today" : "Update"}
             </button>
             <button onClick={() => setShowSettings(true)} className="btn">
               Settings
