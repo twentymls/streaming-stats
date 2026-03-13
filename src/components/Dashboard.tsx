@@ -34,6 +34,7 @@ export function Dashboard({ onReset }: DashboardProps) {
   const [historicStats, setHistoricStats] = useState<DailyStat[]>([]);
   const [apiCount, setApiCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
   const [artistName, setArtistName] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
@@ -155,6 +156,7 @@ export function Dashboard({ onReset }: DashboardProps) {
       }
 
       if (shouldFetch) {
+        setInitialLoading(true);
         setLoading(true);
         try {
           const hasData = (await getLatestStats()).length > 0;
@@ -186,8 +188,10 @@ export function Dashboard({ onReset }: DashboardProps) {
           await loadData();
         } catch (err) {
           console.error("Auto-fetch failed:", err);
+        } finally {
+          setLoading(false);
+          setInitialLoading(false);
         }
-        setLoading(false);
       }
     })();
 
@@ -258,84 +262,97 @@ export function Dashboard({ onReset }: DashboardProps) {
   }));
 
   return (
-    <div className="dashboard">
-      <header className="dashboard-header">
-        <div className="header-left">
-          <h1>{artistName || "Streaming Stats"}</h1>
-          {lastUpdate && <span className="last-update">Last update: {lastUpdate}</span>}
+    <>
+      {initialLoading && (
+        <div className="loading-overlay">
+          <div className="loading-overlay-content">
+            <div className="spinner" />
+            <p>Updating stats...</p>
+          </div>
         </div>
-        <div className="header-right">
-          <div className="api-badge">API: {apiCount}/500</div>
-          <button
-            onClick={latestStats.size === 0 ? handleFetchWithInfo : handleFetch}
-            disabled={loading || fetchesToday >= 2}
-            className="btn btn-primary"
-          >
-            {loading ? "Updating..." : fetchesToday >= 2 ? "Done for today" : "Update"}
-          </button>
-          <button onClick={() => setShowSettings(true)} className="btn">
-            Settings
-          </button>
-        </div>
-      </header>
-
-      {latestStats.size === 0 ? (
-        <div className="empty-state">
-          <h2>No data yet</h2>
-          <p>Click "Update" to fetch your first stats from all platforms.</p>
-        </div>
-      ) : (
-        <>
-          <section className="platforms-grid">
-            {settings?.enabled_sources
-              .filter((s) => latestStats.has(s))
-              .map((source) => (
-                <PlatformCard
-                  key={source}
-                  source={source}
-                  stats={latestStats.get(source)!}
-                  onClick={() => setSelectedPlatform(source)}
-                />
-              ))}
-            {settings?.enabled_sources
-              .filter((s) => !latestStats.has(s))
-              .map((source) => (
-                <div key={source} className="platform-card empty">
-                  <div className="platform-header">
-                    <span className="platform-name">{DSP_NAMES[source] ?? source}</span>
-                  </div>
-                  <div className="platform-main-stat">-</div>
-                  <div className="platform-main-label">No data</div>
-                </div>
-              ))}
-          </section>
-
-          {dashboardHistoric.length > 0 && (
-            <section className="charts-section">
-              <div className="period-selector">
-                {[7, 30, 60, 90].map((d) => (
-                  <button
-                    key={d}
-                    className={`btn btn-sm ${period === d ? "active" : ""}`}
-                    onClick={() => setPeriod(d)}
-                  >
-                    {d}d
-                  </button>
-                ))}
-              </div>
-
-              <div className="charts-grid">
-                <TrendChart
-                  stats={dashboardHistoric}
-                  title="Streams / Views over time"
-                  statType="streams"
-                />
-                <DistributionChart platformStats={distribution} title="Distribution by platform" />
-              </div>
-            </section>
-          )}
-        </>
       )}
-    </div>
+      <div className="dashboard">
+        <header className="dashboard-header">
+          <div className="header-left">
+            <h1>{artistName || "Streaming Stats"}</h1>
+            {lastUpdate && <span className="last-update">Last update: {lastUpdate}</span>}
+          </div>
+          <div className="header-right">
+            <div className="api-badge">API: {apiCount}/500</div>
+            <button
+              onClick={latestStats.size === 0 ? handleFetchWithInfo : handleFetch}
+              disabled={loading || fetchesToday >= 2}
+              className="btn btn-primary"
+            >
+              {loading ? "Updating..." : fetchesToday >= 2 ? "Done for today" : "Update"}
+            </button>
+            <button onClick={() => setShowSettings(true)} className="btn">
+              Settings
+            </button>
+          </div>
+        </header>
+
+        {latestStats.size === 0 ? (
+          <div className="empty-state">
+            <h2>No data yet</h2>
+            <p>Click "Update" to fetch your first stats from all platforms.</p>
+          </div>
+        ) : (
+          <>
+            <section className="platforms-grid">
+              {settings?.enabled_sources
+                .filter((s) => latestStats.has(s))
+                .map((source) => (
+                  <PlatformCard
+                    key={source}
+                    source={source}
+                    stats={latestStats.get(source)!}
+                    onClick={() => setSelectedPlatform(source)}
+                  />
+                ))}
+              {settings?.enabled_sources
+                .filter((s) => !latestStats.has(s))
+                .map((source) => (
+                  <div key={source} className="platform-card empty">
+                    <div className="platform-header">
+                      <span className="platform-name">{DSP_NAMES[source] ?? source}</span>
+                    </div>
+                    <div className="platform-main-stat">-</div>
+                    <div className="platform-main-label">No data</div>
+                  </div>
+                ))}
+            </section>
+
+            {dashboardHistoric.length > 0 && (
+              <section className="charts-section">
+                <div className="period-selector">
+                  {[7, 30, 60, 90].map((d) => (
+                    <button
+                      key={d}
+                      className={`btn btn-sm ${period === d ? "active" : ""}`}
+                      onClick={() => setPeriod(d)}
+                    >
+                      {d}d
+                    </button>
+                  ))}
+                </div>
+
+                <div className="charts-grid">
+                  <TrendChart
+                    stats={dashboardHistoric}
+                    title="Streams / Views over time"
+                    statType="streams"
+                  />
+                  <DistributionChart
+                    platformStats={distribution}
+                    title="Distribution by platform"
+                  />
+                </div>
+              </section>
+            )}
+          </>
+        )}
+      </div>
+    </>
   );
 }
