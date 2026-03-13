@@ -3,7 +3,7 @@
 A cross-platform app for desktop and mobile that tracks streaming stats for music artists across 8 platforms using the [Songstats API](https://rapidapi.com/songstats-app-songstats-app-default/api/songstats). Built with Tauri 2 (Rust + React). Runs on macOS, Windows, iOS, and Android.
 
 <p align="center">
-  <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="720" />
+  <img src="docs/screenshots/dashboard-1.png" alt="Dashboard" width="720" />
 </p>
 
 ## Download
@@ -34,10 +34,11 @@ Spotify, Apple Music, YouTube, TikTok, Deezer, Amazon Music, Shazam, SoundCloud
 ## Screenshots
 
 <details>
-<summary><b>Dashboard</b> — KPI cards, daily growth chart, platform share breakdown</summary>
+<summary><b>Dashboard</b> — Platform cards, followers pie chart, KPI cards, daily growth chart, growth share</summary>
 <br />
 <p align="center">
-  <img src="docs/screenshots/dashboard.png" alt="Dashboard view showing platform cards, KPI row, stacked bar chart, and growth share" width="720" />
+  <img src="docs/screenshots/dashboard-1.png" alt="Dashboard view showing platform cards, followers pie chart, and KPI row" width="720" />
+  <img src="docs/screenshots/dashboard-2.png" alt="Dashboard view showing daily growth by platform chart and growth share breakdown" width="720" />
 </p>
 </details>
 
