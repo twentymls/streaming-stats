@@ -80,7 +80,7 @@ streaming-stats/
 │   │   └── Settings.tsx        # Config, platform toggles, backfill button
 │   ├── lib/
 │   │   ├── songstats-api.ts    # Songstats API integration
-│   │   ├── database.ts         # SQLite operations (daily_stats, api_calls_log, top_tracks, top_curators)
+│   │   ├── database.ts         # Thin invoke() wrappers for Rust DB commands
 │   │   ├── settings.ts         # Tauri store for app settings
 │   │   ├── constants.ts        # Platform names, colors, stat labels
 │   │   └── types.ts            # TypeScript interfaces
@@ -90,8 +90,11 @@ streaming-stats/
 │   ├── Cargo.toml              # Rust dependencies
 │   ├── tauri.conf.json         # Tauri app config (window, CSP, plugins)
 │   └── src/
-│       ├── lib.rs              # Tauri app setup (plugins, tray, invoke handler)
-│       └── commands.rs         # Rust commands exposed to frontend
+│       ├── lib.rs              # Tauri app setup (plugins, tray, DB pool, invoke handler)
+│       ├── commands.rs         # 13 Tauri commands (DB reads/writes)
+│       ├── db.rs               # SQLite pool creation and migrations
+│       ├── models.rs           # Rust structs (DailyStat, TopTrack, TopCurator)
+│       └── error.rs            # Error types
 ├── index.html                  # HTML shell
 ├── vite.config.ts              # Vite bundler config
 ├── tsconfig.json               # TypeScript config
@@ -105,7 +108,7 @@ streaming-stats/
 | Desktop framework | [Tauri v2](https://v2.tauri.app/) |
 | Frontend | React 19, TypeScript, Vite |
 | Backend | Rust |
-| Database | SQLite (via tauri-plugin-sql) |
+| Database | SQLite (via sqlx in Rust) |
 | Settings storage | tauri-plugin-store |
 | HTTP client | tauri-plugin-http (reqwest with brotli/gzip) |
 | Charts | Chart.js + react-chartjs-2 |
