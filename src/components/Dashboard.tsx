@@ -343,6 +343,9 @@ export function Dashboard({ onReset }: DashboardProps) {
           </div>
         ) : (
           <>
+            <div className="section-header">
+              <h2>Platforms</h2>
+            </div>
             <section className="platforms-grid">
               {settings?.enabled_sources
                 .filter((s) => latestStats.has(s))
@@ -370,26 +373,31 @@ export function Dashboard({ onReset }: DashboardProps) {
             <FollowersPieChart platformStats={latestStats} />
 
             {chartData.dailyPoints.length > 0 && (
-              <section className="charts-section">
-                <div className="period-selector">
-                  {[7, 30, 60, 90].map((d) => (
-                    <button
-                      key={d}
-                      className={`btn btn-sm ${period === d ? "active" : ""}`}
-                      onClick={() => setPeriod(d)}
-                    >
-                      {d}d
-                    </button>
-                  ))}
+              <>
+                <div className="section-header">
+                  <h2>Analytics</h2>
                 </div>
+                <section className="charts-section">
+                  <div className="period-selector">
+                    {[7, 30, 60, 90].map((d) => (
+                      <button
+                        key={d}
+                        className={`btn btn-sm ${period === d ? "active" : ""}`}
+                        onClick={() => setPeriod(d)}
+                      >
+                        {d}d
+                      </button>
+                    ))}
+                  </div>
 
-                <KpiRow stats={chartData.aggregateStats} platformDeltas={kpiPlatformDeltas} />
-                <DailyGrowthChart dailyPoints={chartData.dailyPoints} />
-                <GrowthShare
-                  summaries={chartData.platformSummaries}
-                  onPlatformClick={setSelectedPlatform}
-                />
-              </section>
+                  <KpiRow stats={chartData.aggregateStats} platformDeltas={kpiPlatformDeltas} />
+                  <DailyGrowthChart dailyPoints={chartData.dailyPoints} />
+                  <GrowthShare
+                    summaries={chartData.platformSummaries}
+                    onPlatformClick={setSelectedPlatform}
+                  />
+                </section>
+              </>
             )}
           </>
         )}

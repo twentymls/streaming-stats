@@ -104,7 +104,7 @@ export function PlatformDetail({
       </div>
 
       {hero && (
-        <div className="detail-hero" style={{ borderLeft: `4px solid ${color}` }}>
+        <div className="detail-hero" style={{ "--hero-accent": color } as React.CSSProperties}>
           <div className="detail-hero-value">
             {formatNumber(hero.value)}
             {yesterdayDeltas[hero.key] != null && (
@@ -162,7 +162,7 @@ export function PlatformDetail({
                     {source === "tiktok" ? "videos" : source === "youtube" ? "views" : "streams"}
                     {topTrackDeltas?.get(track.title) != null && (
                       <span className="yesterday-badge-sm">
-                        +{formatNumber(topTrackDeltas.get(track.title)!)} ieri
+                        +{formatNumber(topTrackDeltas.get(track.title)!)} yesterday
                       </span>
                     )}
                   </div>

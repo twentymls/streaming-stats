@@ -92,5 +92,14 @@ export const DEFAULT_SOURCES = [
   "soundcloud",
 ];
 
+export const CHART_THEME = {
+  gridColor: "#1e2230",
+  tickColor: "#6b7280",
+  legendColor: "#9ba1b0",
+  tooltipBg: "#232738",
+  tooltipBorder: "#3a4058",
+  tooltipText: "#eaedf3",
+} as const;
+
 export const RAPIDAPI_HOST = "songstats.p.rapidapi.com";
 export const RAPIDAPI_BASE_URL = `https://${RAPIDAPI_HOST}`;
