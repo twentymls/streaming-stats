@@ -1,5 +1,18 @@
 # CLAUDE.md — Streaming Stats
 
+## Open Source
+
+This project is **open source** (MIT license). All code changes are publicly visible. Before committing any change:
+
+- **Never** hardcode secrets, API keys, tokens, passwords, or credentials — use `@tauri-apps/plugin-store` for sensitive data.
+- **Never** commit personal data (emails, usernames, real names in code/comments, IP addresses, file paths containing usernames).
+- **Never** log or expose sensitive user data (API keys, tokens, listening history) in error messages, console output, or UI.
+- **Never** commit `.env` files, database files (`*.db`, `*.sqlite*`), or local config (`.claude/`).
+- Review all code for OWASP top 10 vulnerabilities: SQL injection, XSS, command injection, insecure deserialization, etc.
+- Keep SQL queries parameterized — never interpolate user input into SQL strings.
+- Keep the CSP in `tauri.conf.json` restrictive — only whitelist domains that are actually needed.
+- Audit new dependencies for known vulnerabilities before adding them.
+
 ## Project Overview
 
 Cross-platform app (desktop + mobile) for tracking music streaming statistics across platforms (Spotify, Apple Music, YouTube, TikTok, etc.). Built with **Tauri 2 + React 19 + TypeScript 5.9 + Rust**. Targets macOS, iOS, and Android.
