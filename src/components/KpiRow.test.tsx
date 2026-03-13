@@ -13,8 +13,17 @@ describe("KpiRow", () => {
   it("renders today's growth with positive formatting", () => {
     render(<KpiRow stats={defaultStats} />);
     expect(screen.getByText("Today's Growth")).toBeInTheDocument();
-    expect(screen.getByText("All platforms combined")).toBeInTheDocument();
     expect(screen.getByText(/47\.2K/)).toBeInTheDocument();
+  });
+
+  it("renders info tooltips on each card", () => {
+    const { container } = render(<KpiRow stats={defaultStats} />);
+    const tooltips = container.querySelectorAll(".kpi-info");
+    expect(tooltips.length).toBe(6);
+    const tooltipTexts = container.querySelectorAll(".kpi-tooltip");
+    expect(tooltipTexts[0]?.textContent).toMatch(/all platforms/i);
+    expect(tooltipTexts[3]?.textContent).toMatch(/average daily gain/i);
+    expect(tooltipTexts[4]?.textContent).toMatch(/highest combined growth/i);
   });
 
   it("renders average daily growth", () => {
