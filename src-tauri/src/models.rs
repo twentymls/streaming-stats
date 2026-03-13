@@ -14,6 +14,8 @@ pub struct TopTrack {
     pub title: String,
     pub streams: i64,
     pub artwork_url: Option<String>,
+    pub songstats_track_id: Option<String>,
+    pub songstats_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
@@ -22,7 +24,25 @@ pub struct TopTrackRow {
     pub title: String,
     pub streams: i64,
     pub artwork_url: Option<String>,
+    pub songstats_track_id: Option<String>,
+    pub songstats_url: Option<String>,
     pub rank: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrackStat {
+    pub songstats_track_id: String,
+    pub source: String,
+    pub stat_type: String,
+    pub value: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct TrackStatRow {
+    pub songstats_track_id: String,
+    pub source: String,
+    pub stat_type: String,
+    pub value: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

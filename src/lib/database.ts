@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { DailyStat, TopTrack, TopCurator } from "./types";
+import type { DailyStat, TopTrack, TopCurator, TrackStat } from "./types";
 
 export async function getLatestStats(): Promise<DailyStat[]> {
   return invoke<DailyStat[]>("get_latest_stats");
@@ -79,4 +79,32 @@ export async function getAllCachedTopTracks(): Promise<Map<string, TopTrack[]>> 
 export async function getAllCachedTopCurators(): Promise<Map<string, TopCurator[]>> {
   const obj = await invoke<Record<string, TopCurator[]>>("get_all_cached_top_curators");
   return new Map(Object.entries(obj));
+}
+
+export async function saveTrackStats(
+  date: string,
+  songstatsTrackId: string,
+  source: string,
+  stats: [string, number][]
+): Promise<void> {
+  return invoke("save_track_stats", {
+    date,
+    songstatsTrackId,
+    source,
+    stats,
+  });
+}
+
+export async function getLatestTrackStats(
+  songstatsTrackId: string,
+  source: string
+): Promise<TrackStat[]> {
+  return invoke<TrackStat[]>("get_latest_track_stats", {
+    songstatsTrackId,
+    source,
+  });
+}
+
+export async function getTrackStatsLastFetch(source: string): Promise<string | null> {
+  return invoke<string | null>("get_track_stats_last_fetch", { source });
 }

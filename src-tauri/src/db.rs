@@ -3,6 +3,18 @@ use sqlx::SqlitePool;
 use std::path::Path;
 pub type DbPool = tokio::sync::Mutex<SqlitePool>;
 
+/// Represents one row of PRAGMA table_info() output.
+#[derive(sqlx::FromRow)]
+#[allow(dead_code)]
+struct ColumnInfo {
+    cid: i64,
+    name: String,
+    r#type: String,
+    notnull: i64,
+    dflt_value: Option<String>,
+    pk: i64,
+}
+
 pub async fn create_pool(db_path: &Path) -> Result<SqlitePool, sqlx::Error> {
     let options = SqliteConnectOptions::new()
         .filename(db_path)
@@ -97,6 +109,44 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
 
+    // Add songstats_track_id and songstats_url columns to top_tracks if they don't exist
+    let columns: Vec<ColumnInfo> = sqlx::query_as("PRAGMA table_info(top_tracks)")
+        .fetch_all(pool)
+        .await?;
+    let col_names: Vec<&str> = columns.iter().map(|c| c.name.as_str()).collect();
+
+    if !col_names.contains(&"songstats_track_id") {
+        sqlx::query("ALTER TABLE top_tracks ADD COLUMN songstats_track_id TEXT")
+            .execute(pool)
+            .await?;
+    }
+    if !col_names.contains(&"songstats_url") {
+        sqlx::query("ALTER TABLE top_tracks ADD COLUMN songstats_url TEXT")
+            .execute(pool)
+            .await?;
+    }
+
+    // Per-track stats table
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS track_stats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            songstats_track_id TEXT NOT NULL,
+            source TEXT NOT NULL,
+            stat_type TEXT NOT NULL,
+            value REAL NOT NULL DEFAULT 0,
+            UNIQUE(date, songstats_track_id, source, stat_type)
+        )",
+    )
+    .execute(pool)
+    .await?;
+
+    sqlx::query(
+        "CREATE INDEX IF NOT EXISTS idx_track_stats_id_source ON track_stats(songstats_track_id, source)",
+    )
+    .execute(pool)
+    .await?;
+
     Ok(())
 }
 
@@ -122,6 +172,7 @@ mod tests {
         assert!(table_names.contains(&"api_calls_log"));
         assert!(table_names.contains(&"top_tracks"));
         assert!(table_names.contains(&"top_curators"));
+        assert!(table_names.contains(&"track_stats"));
     }
 
     #[tokio::test]

@@ -18,6 +18,7 @@ interface PlatformDetailProps {
   topTracks: TopTrack[];
   topCurators: TopCurator[];
   topTrackDeltas?: Map<string, number>;
+  trackStats?: Map<string, Record<string, number>>;
   onBack: () => void;
 }
 
@@ -45,6 +46,7 @@ export function PlatformDetail({
   topTracks,
   topCurators,
   topTrackDeltas,
+  trackStats,
   onBack,
 }: PlatformDetailProps) {
   const [period, setPeriod] = useState(30);
@@ -147,15 +149,39 @@ export function PlatformDetail({
                   <img className="top-track-artwork" src={track.artwork_url} alt="" />
                 )}
                 <div className="top-track-info">
-                  <div className="top-track-title">{track.title}</div>
+                  <div className="top-track-title">
+                    {track.title}
+                    {track.songstats_url && (
+                      <a
+                        href={track.songstats_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="track-link"
+                      >
+                        View on Songstats
+                      </a>
+                    )}
+                  </div>
                   <div className="top-track-streams">
-                    {formatNumber(track.streams)} {trendStatType === "views" ? "views" : "streams"}
+                    {formatNumber(track.streams)}{" "}
+                    {source === "tiktok" ? "videos" : source === "youtube" ? "views" : "streams"}
                     {topTrackDeltas?.get(track.title) != null && (
                       <span className="yesterday-badge-sm">
                         +{formatNumber(topTrackDeltas.get(track.title)!)} ieri
                       </span>
                     )}
                   </div>
+                  {track.songstats_track_id && trackStats?.get(track.songstats_track_id) && (
+                    <div className="track-stat-badges">
+                      {Object.entries(trackStats.get(track.songstats_track_id)!).map(
+                        ([key, value]) => (
+                          <span key={key} className="track-stat-badge">
+                            {formatNumber(value)} {DSP_STAT_LABELS[key] ?? key}
+                          </span>
+                        )
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

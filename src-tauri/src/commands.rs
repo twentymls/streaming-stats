@@ -4,7 +4,10 @@ use sqlx::SqlitePool;
 use tauri::State;
 
 use crate::db::DbPool;
-use crate::models::{DailyStat, TitleDelta, TopCurator, TopCuratorRow, TopTrack, TopTrackRow};
+use crate::models::{
+    DailyStat, TitleDelta, TopCurator, TopCuratorRow, TopTrack, TopTrackRow, TrackStat,
+    TrackStatRow,
+};
 
 #[tauri::command(rename_all = "camelCase")]
 pub async fn get_latest_stats(pool: State<'_, DbPool>) -> Result<Vec<DailyStat>, String> {
@@ -112,7 +115,7 @@ async fn query_latest_top_tracks(
     source: &str,
 ) -> Result<Vec<TopTrack>, sqlx::Error> {
     let rows = sqlx::query_as::<_, TopTrackRow>(
-        "SELECT source, title, streams, artwork_url, rank FROM top_tracks \
+        "SELECT source, title, streams, artwork_url, songstats_track_id, songstats_url, rank FROM top_tracks \
          WHERE source = ? AND date = (SELECT MAX(date) FROM top_tracks WHERE source = ?) \
          ORDER BY rank ASC",
     )
@@ -127,6 +130,8 @@ async fn query_latest_top_tracks(
             title: r.title,
             streams: r.streams,
             artwork_url: r.artwork_url,
+            songstats_track_id: r.songstats_track_id,
+            songstats_url: r.songstats_url,
         })
         .collect())
 }
@@ -215,7 +220,7 @@ async fn query_all_cached_top_tracks(
     pool: &SqlitePool,
 ) -> Result<HashMap<String, Vec<TopTrack>>, sqlx::Error> {
     let rows = sqlx::query_as::<_, TopTrackRow>(
-        "SELECT t.source, t.title, t.streams, t.artwork_url, t.rank FROM top_tracks t \
+        "SELECT t.source, t.title, t.streams, t.artwork_url, t.songstats_track_id, t.songstats_url, t.rank FROM top_tracks t \
          INNER JOIN (SELECT source, MAX(date) as max_date FROM top_tracks GROUP BY source) m \
          ON t.source = m.source AND t.date = m.max_date \
          ORDER BY t.source, t.rank",
@@ -229,6 +234,8 @@ async fn query_all_cached_top_tracks(
             title: r.title,
             streams: r.streams,
             artwork_url: r.artwork_url,
+            songstats_track_id: r.songstats_track_id,
+            songstats_url: r.songstats_url,
         });
     }
     Ok(map)
@@ -355,8 +362,8 @@ async fn query_save_top_tracks(
     let mut tx = pool.begin().await?;
     for (i, t) in tracks.iter().enumerate() {
         sqlx::query(
-            "INSERT OR REPLACE INTO top_tracks (date, source, rank, title, streams, artwork_url) \
-             VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO top_tracks (date, source, rank, title, streams, artwork_url, songstats_track_id, songstats_url) \
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(date)
         .bind(source)
@@ -364,6 +371,8 @@ async fn query_save_top_tracks(
         .bind(&t.title)
         .bind(t.streams)
         .bind(&t.artwork_url)
+        .bind(&t.songstats_track_id)
+        .bind(&t.songstats_url)
         .execute(&mut *tx)
         .await?;
     }
@@ -408,6 +417,109 @@ async fn query_save_top_curators(
     }
     tx.commit().await?;
     Ok(())
+}
+
+#[tauri::command(rename_all = "camelCase")]
+pub async fn save_track_stats(
+    pool: State<'_, DbPool>,
+    date: String,
+    songstats_track_id: String,
+    source: String,
+    stats: Vec<(String, f64)>,
+) -> Result<(), String> {
+    let pool = pool.lock().await;
+    query_save_track_stats(&pool, &date, &songstats_track_id, &source, &stats)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+async fn query_save_track_stats(
+    pool: &SqlitePool,
+    date: &str,
+    songstats_track_id: &str,
+    source: &str,
+    stats: &[(String, f64)],
+) -> Result<(), sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    for (stat_type, value) in stats {
+        sqlx::query(
+            "INSERT OR REPLACE INTO track_stats (date, songstats_track_id, source, stat_type, value) \
+             VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(date)
+        .bind(songstats_track_id)
+        .bind(source)
+        .bind(stat_type)
+        .bind(value)
+        .execute(&mut *tx)
+        .await?;
+    }
+    tx.commit().await?;
+    Ok(())
+}
+
+#[tauri::command(rename_all = "camelCase")]
+pub async fn get_latest_track_stats(
+    pool: State<'_, DbPool>,
+    songstats_track_id: String,
+    source: String,
+) -> Result<Vec<TrackStat>, String> {
+    let pool = pool.lock().await;
+    query_latest_track_stats(&pool, &songstats_track_id, &source)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+async fn query_latest_track_stats(
+    pool: &SqlitePool,
+    songstats_track_id: &str,
+    source: &str,
+) -> Result<Vec<TrackStat>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, TrackStatRow>(
+        "SELECT songstats_track_id, source, stat_type, value FROM track_stats \
+         WHERE songstats_track_id = ? AND source = ? \
+           AND date = (SELECT MAX(date) FROM track_stats WHERE songstats_track_id = ? AND source = ?) \
+         ORDER BY stat_type",
+    )
+    .bind(songstats_track_id)
+    .bind(source)
+    .bind(songstats_track_id)
+    .bind(source)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|r| TrackStat {
+            songstats_track_id: r.songstats_track_id,
+            source: r.source,
+            stat_type: r.stat_type,
+            value: r.value,
+        })
+        .collect())
+}
+
+#[tauri::command(rename_all = "camelCase")]
+pub async fn get_track_stats_last_fetch(
+    pool: State<'_, DbPool>,
+    source: String,
+) -> Result<Option<String>, String> {
+    let pool = pool.lock().await;
+    query_track_stats_last_fetch(&pool, &source)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+async fn query_track_stats_last_fetch(
+    pool: &SqlitePool,
+    source: &str,
+) -> Result<Option<String>, sqlx::Error> {
+    let row: (Option<String>,) =
+        sqlx::query_as("SELECT MAX(date) FROM track_stats WHERE source = ?")
+            .bind(source)
+            .fetch_one(pool)
+            .await?;
+    Ok(row.0)
 }
 
 #[cfg(test)]
@@ -522,11 +634,15 @@ mod tests {
                 title: "Song A".to_string(),
                 streams: 1000,
                 artwork_url: None,
+                songstats_track_id: None,
+                songstats_url: None,
             },
             TopTrack {
                 title: "Song B".to_string(),
                 streams: 500,
                 artwork_url: Some("http://example.com/art.jpg".to_string()),
+                songstats_track_id: None,
+                songstats_url: None,
             },
         ];
 
@@ -579,11 +695,15 @@ mod tests {
                 title: "Song A".to_string(),
                 streams: 1000,
                 artwork_url: None,
+                songstats_track_id: None,
+                songstats_url: None,
             },
             TopTrack {
                 title: "Song B".to_string(),
                 streams: 500,
                 artwork_url: None,
+                songstats_track_id: None,
+                songstats_url: None,
             },
         ];
         query_save_top_tracks(&pool, "2025-01-14", "spotify", &day1_tracks)
@@ -595,11 +715,15 @@ mod tests {
                 title: "Song A".to_string(),
                 streams: 1200,
                 artwork_url: None,
+                songstats_track_id: None,
+                songstats_url: None,
             },
             TopTrack {
                 title: "Song B".to_string(),
                 streams: 500,
                 artwork_url: None,
+                songstats_track_id: None,
+                songstats_url: None,
             },
         ];
         query_save_top_tracks(&pool, "2025-01-15", "spotify", &day2_tracks)
@@ -621,11 +745,15 @@ mod tests {
             title: "Spotify Song".to_string(),
             streams: 1000,
             artwork_url: None,
+            songstats_track_id: None,
+            songstats_url: None,
         }];
         let apple_tracks = vec![TopTrack {
             title: "Apple Song".to_string(),
             streams: 2000,
             artwork_url: None,
+            songstats_track_id: None,
+            songstats_url: None,
         }];
 
         query_save_top_tracks(&pool, "2025-01-15", "spotify", &spotify_tracks)
@@ -685,5 +813,67 @@ mod tests {
 
         let count = query_monthly_api_count(&pool).await.unwrap();
         assert_eq!(count, 1);
+    }
+
+    #[tokio::test]
+    async fn test_save_and_get_track_stats() {
+        let pool = test_pool().await;
+        let stats = vec![
+            ("creates".to_string(), 500.0),
+            ("views".to_string(), 100000.0),
+        ];
+
+        query_save_track_stats(&pool, "2025-01-15", "track_123", "tiktok", &stats)
+            .await
+            .unwrap();
+
+        let result = query_latest_track_stats(&pool, "track_123", "tiktok")
+            .await
+            .unwrap();
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].stat_type, "creates");
+        assert_eq!(result[0].value, 500.0);
+        assert_eq!(result[1].stat_type, "views");
+        assert_eq!(result[1].value, 100000.0);
+    }
+
+    #[tokio::test]
+    async fn test_get_track_stats_last_fetch() {
+        let pool = test_pool().await;
+
+        let date = query_track_stats_last_fetch(&pool, "tiktok").await.unwrap();
+        assert!(date.is_none());
+
+        let stats = vec![("creates".to_string(), 500.0)];
+        query_save_track_stats(&pool, "2025-01-15", "track_123", "tiktok", &stats)
+            .await
+            .unwrap();
+
+        let date = query_track_stats_last_fetch(&pool, "tiktok").await.unwrap();
+        assert_eq!(date, Some("2025-01-15".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_save_top_tracks_with_songstats_fields() {
+        let pool = test_pool().await;
+        let tracks = vec![TopTrack {
+            title: "Track With ID".to_string(),
+            streams: 5000,
+            artwork_url: None,
+            songstats_track_id: Some("ss_track_1".to_string()),
+            songstats_url: Some("https://songstats.com/track/1".to_string()),
+        }];
+
+        query_save_top_tracks(&pool, "2025-01-15", "tiktok", &tracks)
+            .await
+            .unwrap();
+
+        let result = query_latest_top_tracks(&pool, "tiktok").await.unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].songstats_track_id, Some("ss_track_1".to_string()));
+        assert_eq!(
+            result[0].songstats_url,
+            Some("https://songstats.com/track/1".to_string())
+        );
     }
 }

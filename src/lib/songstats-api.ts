@@ -1,7 +1,13 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import { RAPIDAPI_BASE_URL, RAPIDAPI_HOST } from "./constants";
-import { ArtistInfo, PlatformStats, TopTrack, TopCurator } from "./types";
-import { logApiCall, saveDailyStat, saveTopTracks, saveTopCurators } from "./database";
+import type { ArtistInfo, PlatformStats, TopTrack, TopCurator } from "./types";
+import {
+  logApiCall,
+  saveDailyStat,
+  saveTopTracks,
+  saveTopCurators,
+  saveTrackStats,
+} from "./database";
 
 export const TOP_TRACKS_SOURCES = [
   "spotify",
@@ -316,8 +322,6 @@ export async function fetchTopTracks(
 
     await logApiCall("/artists/top_tracks", source, 200);
 
-    console.log("[songstats] /artists/top_tracks raw response:", JSON.stringify(data, null, 2));
-
     // Response: { data: [{ source, top_tracks: [...] }] }
     const raw = data as {
       data?: Array<{ top_tracks?: Array<Record<string, unknown>> }>;
@@ -332,6 +336,8 @@ export async function fetchTopTracks(
         : t.artwork_url
           ? String(t.artwork_url)
           : undefined,
+      songstats_track_id: t.songstats_track_id ? String(t.songstats_track_id) : undefined,
+      songstats_url: t.songstats_url ? String(t.songstats_url) : undefined,
     }));
   } catch (err) {
     console.error(`[songstats] FAILED to fetch top tracks for ${source}:`, err);
@@ -371,6 +377,56 @@ export async function fetchAndCacheTopContent(
       }
     } catch (err) {
       console.error(`[songstats] FAILED to cache top curators for ${source}:`, err);
+    }
+  }
+}
+
+export async function fetchTrackStats(
+  api_key: string,
+  songstats_track_id: string,
+  source: string
+): Promise<Record<string, number>> {
+  const data = await apiGet(api_key, "/tracks/stats", {
+    songstats_track_id,
+    source,
+  });
+
+  await logApiCall("/tracks/stats", source, 200);
+
+  const raw = data as {
+    stats?: Array<{ source: string; data?: Record<string, number> }>;
+  };
+  const entry = raw.stats?.find((s) => s.source === source);
+  return entry?.data ? mapStatFields(entry.data) : {};
+}
+
+export async function fetchAndCacheTrackStats(
+  api_key: string,
+  tracks: TopTrack[],
+  sources: string[]
+): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+  let callCount = 0;
+
+  for (const source of sources) {
+    for (const track of tracks) {
+      if (!track.songstats_track_id) continue;
+      if (callCount > 0) await new Promise((r) => setTimeout(r, 1200));
+      try {
+        const stats = await fetchTrackStats(api_key, track.songstats_track_id, source);
+        const entries = Object.entries(stats).map(([k, v]) => [k, v] as [string, number]);
+        if (entries.length > 0) {
+          await saveTrackStats(today, track.songstats_track_id, source, entries);
+        }
+        callCount++;
+      } catch (err) {
+        console.error(
+          `[songstats] FAILED to fetch track stats for ${track.title} on ${source}:`,
+          err
+        );
+        await logApiCall("/tracks/stats", source, 500);
+        callCount++;
+      }
     }
   }
 }

@@ -661,6 +661,34 @@ body {
   color: var(--text-muted);
 }
 
+.track-link {
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-decoration: none;
+  margin-left: 0.5rem;
+  font-weight: 400;
+}
+
+.track-link:hover {
+  text-decoration: underline;
+}
+
+.track-stat-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.track-stat-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+}
+
 .top-tracks-empty {
   color: var(--text-muted);
   font-size: 0.85rem;

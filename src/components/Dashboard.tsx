@@ -10,12 +10,15 @@ import {
   getAllCachedTopTracks,
   getAllCachedTopCurators,
   getTopTrackDeltas,
+  getLatestTrackStats,
+  getTrackStatsLastFetch,
 } from "../lib/database";
 import {
   fetchAllStats,
   fetchHistoricStats,
   getArtistInfo,
   fetchAndCacheTopContent,
+  fetchAndCacheTrackStats,
   TOP_TRACKS_SOURCES,
   TOP_CURATORS_SOURCES,
 } from "../lib/songstats-api";
@@ -44,6 +47,7 @@ export function Dashboard({ onReset }: DashboardProps) {
   const [cachedTopTracks, setCachedTopTracks] = useState<Map<string, TopTrack[]>>(new Map());
   const [cachedTopCurators, setCachedTopCurators] = useState<Map<string, TopCurator[]>>(new Map());
   const [topTrackDeltas, setTopTrackDeltas] = useState<Map<string, Map<string, number>>>(new Map());
+  const [trackStats, setTrackStats] = useState<Map<string, Record<string, number>>>(new Map());
 
   const loadData = useCallback(async () => {
     const s = await loadSettings();
@@ -83,6 +87,25 @@ export function Dashboard({ onReset }: DashboardProps) {
       if (d.size > 0) deltas.set(src, d);
     }
     setTopTrackDeltas(deltas);
+
+    // Load per-track stats for tracks that have songstats_track_id
+    const tsMap = new Map<string, Record<string, number>>();
+    for (const [, trackList] of tracks) {
+      for (const track of trackList) {
+        if (!track.songstats_track_id) continue;
+        for (const src of ["tiktok", "youtube"]) {
+          const ts = await getLatestTrackStats(track.songstats_track_id, src);
+          if (ts.length > 0) {
+            const existing = tsMap.get(track.songstats_track_id) ?? {};
+            for (const s of ts) {
+              existing[s.stat_type] = s.value;
+            }
+            tsMap.set(track.songstats_track_id, existing);
+          }
+        }
+      }
+    }
+    setTrackStats(tsMap);
   }, []);
 
   useEffect(() => {
@@ -148,11 +171,8 @@ export function Dashboard({ onReset }: DashboardProps) {
       let shouldFetch = false;
       if (!lastFetchIso || lastDate !== today) {
         shouldFetch = true;
-      } else if (effectiveCount < 2) {
-        const hoursSinceLast = (Date.now() - new Date(lastFetchIso).getTime()) / (1000 * 60 * 60);
-        if (hoursSinceLast >= 8) {
-          shouldFetch = true;
-        }
+      } else if (effectiveCount < 1) {
+        shouldFetch = true;
       }
 
       if (shouldFetch) {
@@ -182,6 +202,26 @@ export function Dashboard({ onReset }: DashboardProps) {
               TOP_TRACKS_SOURCES,
               TOP_CURATORS_SOURCES
             );
+
+            // Fetch per-track stats weekly
+            const lastTrackStatsFetch = await getTrackStatsLastFetch("tiktok");
+            const daysSince = lastTrackStatsFetch
+              ? (Date.now() - new Date(lastTrackStatsFetch).getTime()) / 86400000
+              : Infinity;
+            if (daysSince >= 7) {
+              const latestTracks = await getAllCachedTopTracks();
+              const allTracks = [
+                ...(latestTracks.get("tiktok") ?? []),
+                ...(latestTracks.get("youtube") ?? []),
+              ];
+              const tracksWithIds = allTracks.filter((t) => t.songstats_track_id);
+              if (tracksWithIds.length > 0) {
+                await fetchAndCacheTrackStats(settings.api_key, tracksWithIds, [
+                  "tiktok",
+                  "youtube",
+                ]);
+              }
+            }
           }
           await recordFetch();
           setFetchesToday((prev) => prev + 1);
@@ -199,28 +239,6 @@ export function Dashboard({ onReset }: DashboardProps) {
       cancelled = true;
     };
   }, [settings?.api_key]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Re-check auto-fetch eligibility every 30 minutes while app is open
-  useEffect(() => {
-    const interval = setInterval(
-      async () => {
-        const { lastFetchIso, fetchCountToday } = await getAutoFetchState();
-        const today = new Date().toLocaleDateString("sv");
-        const lastDate = lastFetchIso?.slice(0, 10);
-        const effectiveCount = lastDate === today ? fetchCountToday : 0;
-
-        if (effectiveCount >= 2 || !lastFetchIso) return;
-
-        const hoursSinceLast = (Date.now() - new Date(lastFetchIso).getTime()) / (1000 * 60 * 60);
-        if (hoursSinceLast >= 8) {
-          handleFetch();
-        }
-      },
-      30 * 60 * 1000
-    );
-
-    return () => clearInterval(interval);
-  }, [handleFetch]);
 
   // Must be above early returns to keep hook order stable
   const dashboardHistoric = useMemo(() => {
@@ -250,6 +268,7 @@ export function Dashboard({ onReset }: DashboardProps) {
         topTracks={cachedTopTracks.get(selectedPlatform) ?? []}
         topCurators={cachedTopCurators.get(selectedPlatform) ?? []}
         topTrackDeltas={topTrackDeltas.get(selectedPlatform)}
+        trackStats={trackStats}
         onBack={() => setSelectedPlatform(null)}
       />
     );
@@ -281,10 +300,10 @@ export function Dashboard({ onReset }: DashboardProps) {
             <div className="api-badge">API: {apiCount}/500</div>
             <button
               onClick={latestStats.size === 0 ? handleFetchWithInfo : handleFetch}
-              disabled={loading || fetchesToday >= 2}
+              disabled={loading || fetchesToday >= 10}
               className="btn btn-primary"
             >
-              {loading ? "Updating..." : fetchesToday >= 2 ? "Done for today" : "Update"}
+              {loading ? "Updating..." : fetchesToday >= 10 ? "Done for today" : "Update"}
             </button>
             <button onClick={() => setShowSettings(true)} className="btn">
               Settings

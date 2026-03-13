@@ -29,6 +29,8 @@ vi.mock("../lib/database", () => ({
   getAllCachedTopTracks: vi.fn(async () => new Map()),
   getAllCachedTopCurators: vi.fn(async () => new Map()),
   getTopTrackDeltas: vi.fn(async () => new Map()),
+  getLatestTrackStats: vi.fn(async () => []),
+  getTrackStatsLastFetch: vi.fn(async () => null),
 }));
 
 // Mock songstats-api functions
@@ -43,6 +45,7 @@ vi.mock("../lib/songstats-api", () => ({
   get fetchAndCacheTopContent() {
     return mockFetchAndCacheTopContent;
   },
+  fetchAndCacheTrackStats: vi.fn(async () => {}),
   TOP_TRACKS_SOURCES: ["spotify"],
   TOP_CURATORS_SOURCES: ["spotify"],
 }));

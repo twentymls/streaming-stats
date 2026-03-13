@@ -208,4 +208,61 @@ describe("database", () => {
       });
     });
   });
+
+  describe("saveTrackStats", () => {
+    it("calls invoke with correct params", async () => {
+      vi.mocked(invoke).mockResolvedValueOnce(undefined);
+      const { saveTrackStats } = await import("./database");
+      const stats: [string, number][] = [
+        ["creates", 500],
+        ["views", 100000],
+      ];
+
+      await saveTrackStats("2025-01-15", "track_123", "tiktok", stats);
+
+      expect(invoke).toHaveBeenCalledWith("save_track_stats", {
+        date: "2025-01-15",
+        songstatsTrackId: "track_123",
+        source: "tiktok",
+        stats,
+      });
+    });
+  });
+
+  describe("getLatestTrackStats", () => {
+    it("calls invoke and returns results", async () => {
+      const mockStats = [
+        { songstats_track_id: "track_123", source: "tiktok", stat_type: "creates", value: 500 },
+      ];
+      vi.mocked(invoke).mockResolvedValueOnce(mockStats);
+
+      const { getLatestTrackStats } = await import("./database");
+      const result = await getLatestTrackStats("track_123", "tiktok");
+
+      expect(invoke).toHaveBeenCalledWith("get_latest_track_stats", {
+        songstatsTrackId: "track_123",
+        source: "tiktok",
+      });
+      expect(result).toEqual(mockStats);
+    });
+  });
+
+  describe("getTrackStatsLastFetch", () => {
+    it("returns date from invoke", async () => {
+      vi.mocked(invoke).mockResolvedValueOnce("2025-01-15");
+      const { getTrackStatsLastFetch } = await import("./database");
+      const date = await getTrackStatsLastFetch("tiktok");
+
+      expect(invoke).toHaveBeenCalledWith("get_track_stats_last_fetch", { source: "tiktok" });
+      expect(date).toBe("2025-01-15");
+    });
+
+    it("returns null when no data", async () => {
+      vi.mocked(invoke).mockResolvedValueOnce(null);
+      const { getTrackStatsLastFetch } = await import("./database");
+      const date = await getTrackStatsLastFetch("tiktok");
+
+      expect(date).toBeNull();
+    });
+  });
 });

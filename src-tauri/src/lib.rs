@@ -69,6 +69,9 @@ pub fn run() {
             commands::log_api_call,
             commands::save_top_tracks,
             commands::save_top_curators,
+            commands::save_track_stats,
+            commands::get_latest_track_stats,
+            commands::get_track_stats_last_fetch,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

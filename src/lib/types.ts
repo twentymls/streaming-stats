@@ -37,6 +37,15 @@ export interface TopTrack {
   title: string;
   streams: number;
   artwork_url?: string;
+  songstats_track_id?: string;
+  songstats_url?: string;
+}
+
+export interface TrackStat {
+  songstats_track_id: string;
+  source: string;
+  stat_type: string;
+  value: number;
 }
 
 export interface TopCurator {
