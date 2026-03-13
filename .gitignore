@@ -17,3 +17,10 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Claude Code local settings
+.claude/
+
+# Database files
+*.db
+*.sqlite*
