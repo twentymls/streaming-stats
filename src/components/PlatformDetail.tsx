@@ -82,19 +82,14 @@ export function PlatformDetail({
   }, [historicStats]);
 
   const preferredStats = TREND_STAT_PREFERENCE[source] ?? [];
+  const PLAY_COUNT_FALLBACK = ["streams", "views", "creates", "shazams", "plays"];
+  const hasData = (st: string) => filteredHistoric.some((s) => s.stat_type === st && s.value > 0);
+  const firstStatWithData = filteredHistoric.find((s) => s.value > 0)?.stat_type;
   const trendStatType =
-    preferredStats.find((st) => filteredHistoric.some((s) => s.stat_type === st)) ??
-    (stats.streams != null
-      ? "streams"
-      : stats.views != null
-        ? "views"
-        : stats.creates != null
-          ? "creates"
-          : stats.shazams != null
-            ? "shazams"
-            : stats.plays != null
-              ? "plays"
-              : "streams");
+    preferredStats.find(hasData) ??
+    PLAY_COUNT_FALLBACK.find(hasData) ??
+    firstStatWithData ??
+    playCountKey;
 
   return (
     <div className="platform-detail">
