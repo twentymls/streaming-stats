@@ -501,26 +501,6 @@ body {
   margin-top: 0.25rem;
 }
 
-/* Smooth toggle */
-.charts-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-
-.smooth-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  cursor: pointer;
-}
-
-.smooth-toggle input {
-  accent-color: var(--accent);
-}
 
 /* Growth Share */
 .growth-share {

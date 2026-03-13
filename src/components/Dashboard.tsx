@@ -248,7 +248,7 @@ export function Dashboard({ onReset }: DashboardProps) {
     };
   }, [settings?.api_key]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [smoothed, setSmoothed] = useState(false);
+  const smoothed = true;
 
   // Must be above early returns to keep hook order stable
   const dashboardHistoric = useMemo(() => {
@@ -371,26 +371,16 @@ export function Dashboard({ onReset }: DashboardProps) {
 
             {chartData.dailyPoints.length > 0 && (
               <section className="charts-section">
-                <div className="charts-toolbar">
-                  <div className="period-selector">
-                    {[7, 30, 60, 90].map((d) => (
-                      <button
-                        key={d}
-                        className={`btn btn-sm ${period === d ? "active" : ""}`}
-                        onClick={() => setPeriod(d)}
-                      >
-                        {d}d
-                      </button>
-                    ))}
-                  </div>
-                  <label className="smooth-toggle">
-                    <input
-                      type="checkbox"
-                      checked={smoothed}
-                      onChange={(e) => setSmoothed(e.target.checked)}
-                    />
-                    Smooth (7-day avg)
-                  </label>
+                <div className="period-selector">
+                  {[7, 30, 60, 90].map((d) => (
+                    <button
+                      key={d}
+                      className={`btn btn-sm ${period === d ? "active" : ""}`}
+                      onClick={() => setPeriod(d)}
+                    >
+                      {d}d
+                    </button>
+                  ))}
                 </div>
 
                 <KpiRow stats={chartData.aggregateStats} platformDeltas={kpiPlatformDeltas} />
