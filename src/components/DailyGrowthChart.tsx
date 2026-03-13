@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Bar } from "react-chartjs-2";
 import type { TooltipItem } from "chart.js";
-import { DSP_CHART_COLORS, DSP_NAMES } from "../lib/constants";
+import { DSP_CHART_COLORS, DSP_NAMES, CHART_THEME } from "../lib/constants";
 
 interface DailyPoint {
   date: string;
@@ -46,9 +46,15 @@ export function DailyGrowthChart({ dailyPoints }: DailyGrowthChartProps) {
       plugins: {
         legend: {
           position: "bottom" as const,
-          labels: { color: "#aaa", boxWidth: 12 },
+          labels: { color: CHART_THEME.legendColor, boxWidth: 12 },
         },
         tooltip: {
+          backgroundColor: CHART_THEME.tooltipBg,
+          borderColor: CHART_THEME.tooltipBorder,
+          borderWidth: 1,
+          titleColor: CHART_THEME.tooltipText,
+          bodyColor: CHART_THEME.tooltipText,
+          cornerRadius: 8,
           callbacks: {
             footer: (items: TooltipItem<"bar">[]) => {
               const total = items.reduce((sum, item) => sum + (item.parsed.y ?? 0), 0);
@@ -60,13 +66,13 @@ export function DailyGrowthChart({ dailyPoints }: DailyGrowthChartProps) {
       scales: {
         x: {
           stacked: true,
-          ticks: { color: "#888" },
-          grid: { color: "#333" },
+          ticks: { color: CHART_THEME.tickColor },
+          grid: { color: CHART_THEME.gridColor },
         },
         y: {
           stacked: true,
-          ticks: { color: "#888" },
-          grid: { color: "#333" },
+          ticks: { color: CHART_THEME.tickColor },
+          grid: { color: CHART_THEME.gridColor },
         },
       },
     }),

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
-import { DSP_CHART_COLORS, DSP_NAMES } from "../lib/constants";
+import { DSP_CHART_COLORS, DSP_NAMES, CHART_THEME } from "../lib/constants";
 import { formatNumber } from "../lib/utils";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -49,9 +49,15 @@ export function FollowersPieChart({ platformStats }: FollowersPieChartProps) {
       plugins: {
         legend: {
           position: "bottom" as const,
-          labels: { color: "#aaa", boxWidth: 12 },
+          labels: { color: CHART_THEME.legendColor, boxWidth: 12 },
         },
         tooltip: {
+          backgroundColor: CHART_THEME.tooltipBg,
+          borderColor: CHART_THEME.tooltipBorder,
+          borderWidth: 1,
+          titleColor: CHART_THEME.tooltipText,
+          bodyColor: CHART_THEME.tooltipText,
+          cornerRadius: 8,
           callbacks: {
             label: (ctx: { label?: string; parsed: number }) => {
               const pct =

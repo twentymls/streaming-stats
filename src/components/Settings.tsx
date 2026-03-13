@@ -102,6 +102,17 @@ export function Settings({ onBack, onReset }: SettingsProps) {
         <button onClick={handleSave} className="btn btn-primary">
           {saved ? "Saved!" : "Save"}
         </button>
+        <button onClick={onBack} className="btn">
+          Cancel
+        </button>
+      </div>
+
+      <div className="settings-danger-zone">
+        <h3>Danger Zone</h3>
+        <p>
+          This will permanently delete all your data, API keys, and settings. You will need to set
+          up the app again from scratch.
+        </p>
         <button onClick={onReset} className="btn btn-danger">
           Full reset
         </button>

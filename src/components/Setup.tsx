@@ -78,9 +78,9 @@ export function Setup({ onComplete }: SetupProps) {
 
         <div className="steps-indicator">
           <div className={`step-dot ${step >= 1 ? "active" : ""}`}>1</div>
-          <div className="step-line" />
+          <div className={`step-line ${step >= 2 ? "completed" : ""}`} />
           <div className={`step-dot ${step >= 2 ? "active" : ""}`}>2</div>
-          <div className="step-line" />
+          <div className={`step-line ${step >= 3 ? "completed" : ""}`} />
           <div className={`step-dot ${step >= 3 ? "active" : ""}`}>3</div>
         </div>
 
