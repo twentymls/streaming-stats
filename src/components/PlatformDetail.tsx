@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { DSP_COLORS, DSP_NAMES, DSP_STAT_LABELS } from "../lib/constants";
+import { PlatformIcon } from "./PlatformIcon";
 import { TrendChart } from "./StatsChart";
 import type { DailyStat, TopTrack, TopCurator } from "../lib/types";
 import { format, subDays } from "date-fns";
@@ -98,7 +99,7 @@ export function PlatformDetail({
           &larr; Back
         </button>
         <h1>
-          <span className="platform-dot" style={{ backgroundColor: color }} />
+          <PlatformIcon source={source} size={24} />
           {name}
         </h1>
       </div>

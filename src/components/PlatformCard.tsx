@@ -1,5 +1,6 @@
 import { DSP_COLORS, DSP_NAMES, DSP_STAT_LABELS } from "../lib/constants";
 import { formatNumber } from "../lib/utils";
+import { PlatformIcon } from "./PlatformIcon";
 
 interface PlatformCardProps {
   source: string;
@@ -39,7 +40,7 @@ export function PlatformCard({ source, stats, onClick }: PlatformCardProps) {
       }
     >
       <div className="platform-header">
-        <span className="platform-dot" style={{ backgroundColor: color }} />
+        <PlatformIcon source={source} size={20} />
         <span className="platform-name">{name}</span>
       </div>
       <div className="platform-main-stat">{formatNumber(mainValue)}</div>

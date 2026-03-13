@@ -530,10 +530,9 @@ body {
   margin-bottom: 0.75rem;
 }
 
-.platform-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
+.platform-icon {
+  flex-shrink: 0;
+  display: inline-flex;
 }
 
 .platform-name {
