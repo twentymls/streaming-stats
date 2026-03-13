@@ -8,7 +8,7 @@ A cross-platform app for desktop and mobile that tracks streaming stats for musi
 
 ## Download
 
-**[Download the latest release](https://github.com/petemiles/streaming-stats/releases/latest)**
+**[Download the latest release](https://github.com/twentymls/streaming-stats/releases/latest)**
 
 ### macOS
 
