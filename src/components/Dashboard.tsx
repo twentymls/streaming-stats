@@ -4,6 +4,7 @@ import { PlatformDetail } from "./PlatformDetail";
 import { KpiRow } from "./KpiRow";
 import { DailyGrowthChart } from "./DailyGrowthChart";
 import { GrowthShare } from "./GrowthShare";
+import { FollowersPieChart } from "./FollowersPieChart";
 import { Settings } from "./Settings";
 import {
   getLatestStats,
@@ -365,6 +366,8 @@ export function Dashboard({ onReset }: DashboardProps) {
                   </div>
                 ))}
             </section>
+
+            <FollowersPieChart platformStats={latestStats} />
 
             {chartData.dailyPoints.length > 0 && (
               <section className="charts-section">
