@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Streaming Stats is a desktop application for tracking music streaming statistics across platforms. It is built with a **Tauri 2** shell (Rust backend + WebView frontend).
+Streaming Stats is a cross-platform application (desktop + mobile) for tracking music streaming statistics across platforms. It is built with a **Tauri 2** shell (Rust backend + WebView frontend) targeting macOS, iOS, and Android.
 
 ## High-Level Stack
 
@@ -69,7 +69,7 @@ The Rust backend handles database operations, system tray, and window management
 
 | File | Purpose |
 |------|---------|
-| `lib.rs` | Tauri app setup: plugin registration, tray menu, DB pool init, command registration |
+| `lib.rs` | Tauri app setup: plugin registration, tray menu (`#[cfg(desktop)]`), DB pool init, command registration |
 | `main.rs` | Entry point (calls `app_lib::run()`, hides Windows console) |
 | `commands.rs` | 16 `#[tauri::command]` handlers for all database operations |
 | `db.rs` | SQLite pool creation (`SqlitePool` via sqlx) and schema migrations |

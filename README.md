@@ -1,12 +1,20 @@
 # Streaming Stats
 
-A desktop app that tracks streaming stats for music artists across 8 platforms using the [Songstats API](https://rapidapi.com/songstats-app-songstats-app-default/api/songstats). Built with Tauri (Rust + React).
+A cross-platform app for desktop and mobile that tracks streaming stats for music artists across 8 platforms using the [Songstats API](https://rapidapi.com/songstats-app-songstats-app-default/api/songstats). Built with Tauri 2 (Rust + React). Runs on macOS, iOS, and Android.
 
 <p align="center">
   <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="720" />
 </p>
 
-## Supported Platforms
+## Supported Targets
+
+| Platform | Status |
+|----------|--------|
+| macOS | Stable |
+| iOS | Supported |
+| Android | Supported |
+
+## Supported Music Platforms
 
 Spotify, Apple Music, YouTube, TikTok, Deezer, Amazon Music, Shazam, SoundCloud
 
@@ -67,6 +75,16 @@ A 1.2 second delay is added between platform requests to stay within the per-sec
 - Tauri system dependencies — see [Tauri Prerequisites](https://v2.tauri.app/start/prerequisites/)
 - A [RapidAPI](https://rapidapi.com/) account with a Songstats API subscription
 
+**For iOS development:**
+- Xcode 15+
+- CocoaPods: `sudo gem install cocoapods`
+- Rust targets: `rustup target add aarch64-apple-ios x86_64-apple-ios aarch64-apple-ios-sim`
+
+**For Android development:**
+- Android Studio with NDK v26+ (install via SDK Manager)
+- Environment variables: `ANDROID_HOME`, `NDK_HOME`
+- Rust targets: `rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android`
+
 ### Install
 
 ```bash
@@ -94,13 +112,28 @@ npx tauri dev
 
 This starts the Vite dev server on `localhost:5173` and compiles the Rust backend. The app window opens automatically with hot-reload for frontend changes.
 
+```bash
+# iOS Simulator
+npx tauri ios dev
+
+# Android Emulator
+npx tauri android dev
+```
+
 ### Build for production
 
 ```bash
+# Desktop (macOS)
 npx tauri build --bundles app
+
+# iOS
+npx tauri ios build
+
+# Android
+npx tauri android build
 ```
 
-The built app is output to:
+Desktop output:
 ```
 src-tauri/target/release/bundle/macos/Streaming Stats.app
 ```
@@ -160,7 +193,8 @@ See [`docs/`](docs/README.md) for detailed documentation on architecture, databa
 
 | Layer | Technology |
 |-------|-----------|
-| Desktop framework | [Tauri v2](https://v2.tauri.app/) |
+| Platforms | macOS, iOS, Android |
+| App framework | [Tauri v2](https://v2.tauri.app/) |
 | Frontend | React 19, TypeScript 5.9, Vite 6 |
 | Backend | Rust (Edition 2021) |
 | Database | SQLite (via sqlx) |

@@ -3,7 +3,10 @@
     "allow": [
       "WebFetch(domain:docs.songstats.com)",
       "WebFetch(domain:rapidapi.com)",
-      "WebFetch(domain:lab.songstats.com)"
+      "WebFetch(domain:lab.songstats.com)",
+      "WebFetch(domain:tauri.app)",
+      "WebFetch(domain:v2.tauri.app)",
+      "WebFetch(domain:dioxuslabs.com)"
     ]
   }
 }

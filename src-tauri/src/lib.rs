@@ -1,7 +1,8 @@
+use tauri::Manager;
+#[cfg(desktop)]
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    Manager,
 };
 
 mod commands;
@@ -16,27 +17,30 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            // Build tray menu
-            let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let open = MenuItem::with_id(app, "open", "Open Dashboard", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open, &quit])?;
+            // Build tray menu (desktop only)
+            #[cfg(desktop)]
+            {
+                let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+                let open = MenuItem::with_id(app, "open", "Open Dashboard", true, None::<&str>)?;
+                let menu = Menu::with_items(app, &[&open, &quit])?;
 
-            TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
-                .menu(&menu)
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "open" => {
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
+                TrayIconBuilder::new()
+                    .icon(app.default_window_icon().unwrap().clone())
+                    .menu(&menu)
+                    .on_menu_event(|app, event| match event.id.as_ref() {
+                        "open" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
                         }
-                    }
-                    "quit" => {
-                        app.exit(0);
-                    }
-                    _ => {}
-                })
-                .build(app)?;
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        _ => {}
+                    })
+                    .build(app)?;
+            }
 
             // Initialize SQLite database pool
             let app_data_dir = app.path().app_data_dir()?;

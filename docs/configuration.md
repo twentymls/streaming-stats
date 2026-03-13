@@ -75,6 +75,7 @@ export default defineConfig({
 ```
 
 - Fixed port 5173 (Tauri expects this for dev).
+- `host: true` enables network access so physical mobile devices can connect during development.
 - ES2021 target for modern JS features.
 - Minification disabled in debug mode.
 - Source maps enabled in debug mode.
@@ -154,6 +155,10 @@ Run with: `npm run format` or `npm run format:check`
 | Script | Command | Purpose |
 |--------|---------|---------|
 | `dev` | `vite` | Vite dev server only (no Tauri backend) |
+| `ios:dev` | `tauri ios dev` | Run on iOS Simulator |
+| `ios:build` | `tauri ios build` | Production iOS build |
+| `android:dev` | `tauri android dev` | Run on Android Emulator |
+| `android:build` | `tauri android build` | Production Android build |
 | `build` | `tsc && vite build` | Type-check + production bundle |
 | `test` | `vitest run` | Single test run |
 | `test:watch` | `vitest` | Watch mode |

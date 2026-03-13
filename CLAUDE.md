@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Desktop app for tracking music streaming statistics across platforms (Spotify, Apple Music, YouTube, TikTok, etc.). Built with **Tauri 2 + React 19 + TypeScript 5.9 + Rust**.
+Cross-platform app (desktop + mobile) for tracking music streaming statistics across platforms (Spotify, Apple Music, YouTube, TikTok, etc.). Built with **Tauri 2 + React 19 + TypeScript 5.9 + Rust**. Targets macOS, iOS, and Android.
 
 ## Environment
 
@@ -13,6 +13,10 @@ Desktop app for tracking music streaming statistics across platforms (Spotify, A
 - `npm run dev` — Vite dev server only (no Tauri backend)
 - `npx tauri dev` — Full development mode (Rust backend + Vite frontend)
 - `npx tauri build --bundles app,dmg` — Production build (app + DMG installer)
+- `npx tauri ios dev` — Run on iOS Simulator
+- `npx tauri ios build` — Production iOS build
+- `npx tauri android dev` — Run on Android Emulator
+- `npx tauri android build` — Production Android build
 - `npm run build` — Frontend-only build (TypeScript + Vite)
 - `npm test` — Run frontend tests once
 - `npm run test:watch` — Run frontend tests in watch mode
@@ -68,6 +72,8 @@ Frontend communicates with backend via Tauri's IPC (`invoke`). API calls go thro
 - Use `tauri::async_runtime` or `tokio` for async operations in Rust commands. Always mark I/O-bound commands as `async`.
 - Tauri plugins are registered in `lib.rs` via `.plugin()`. When adding a new plugin, add it to both `Cargo.toml` and `tauri.conf.json` capabilities.
 - Window management (size, title, decorations) is configured in `tauri.conf.json`, not in Rust code, unless dynamic.
+- Use `#[cfg(desktop)]` to guard desktop-only code (tray icon, menu). Mobile targets don't support tray icons.
+- The `tray-icon` feature is conditionally compiled only for desktop targets via `Cargo.toml` platform-specific dependencies.
 
 ### Rust (Edition 2021)
 
@@ -137,7 +143,8 @@ Frontend communicates with backend via Tauri's IPC (`invoke`). API calls go thro
 
 ### Building
 
-- After every code change, rebuild the app with `npx tauri build --bundles app,dmg` to verify the production build succeeds and regenerate the DMG installer.
+- After every code change, rebuild the app with `npx tauri build --bundles app,dmg` to verify the desktop production build succeeds.
+- For mobile builds: `npx tauri ios build` (iOS) and `npx tauri android build` (Android).
 
 ### General
 - The app identifier is `com.streamingstats.app`. Don't change it without updating all platform configs.
