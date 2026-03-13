@@ -63,7 +63,7 @@ No data is sent anywhere except the Songstats API calls to fetch stats.
 
 ### API Usage
 
-The app uses the Songstats API via RapidAPI. The **BASIC plan** allows 500 requests/month. The daily update uses ~15 API calls (8 platform stats + 6 top tracks + 1 top curators). Per-track stats are refreshed weekly (~10 calls). Once-a-day updates keep monthly usage under 500 calls. Top tracks and curators are cached in the local DB so detail views never make API calls. A backfill uses ~8 calls. The dashboard shows your current monthly usage.
+The app uses the Songstats API via RapidAPI. The **BASIC plan** allows 500 requests/month. The daily update uses ~15 API calls (8 platform stats + 6 top tracks + 1 top curators). Per-track stats are refreshed weekly (~10 calls). Once-a-day updates keep monthly usage under 500 calls. Top tracks and curators are stored in the local DB during the daily fetch, so detail views read directly from the database without making API calls. A backfill uses ~8 calls. The dashboard shows your current monthly usage.
 
 A 1.2 second delay is added between platform requests to stay within the per-second rate limit.
 
