@@ -1,6 +1,6 @@
 # Streaming Stats Documentation
 
-Comprehensive documentation for Streaming Stats -- a cross-platform Tauri 2 + React 19 + Rust application (desktop + mobile) for tracking music streaming statistics across platforms.
+Comprehensive documentation for Streaming Stats -- a cross-platform Tauri 2 + React 19 + Rust application (desktop + mobile) for tracking music streaming statistics across platforms. Targets macOS, Windows, iOS, and Android.
 
 ## Documents
 
@@ -41,7 +41,8 @@ export PATH="$HOME/.cargo/bin:$PATH" && npx tauri ios dev     # iOS Simulator
 export PATH="$HOME/.cargo/bin:$PATH" && npx tauri android dev # Android Emulator
 
 # Production build
-export PATH="$HOME/.cargo/bin:$PATH" && npx tauri build --bundles app,dmg  # Desktop
+export PATH="$HOME/.cargo/bin:$PATH" && npx tauri build --bundles app,dmg  # Desktop (macOS)
+export PATH="$HOME/.cargo/bin:$PATH" && npx tauri build --bundles nsis     # Desktop (Windows — run on Windows)
 export PATH="$HOME/.cargo/bin:$PATH" && npx tauri ios build                # iOS
 export PATH="$HOME/.cargo/bin:$PATH" && npx tauri android build            # Android
 

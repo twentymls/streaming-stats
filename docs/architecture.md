@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Streaming Stats is a cross-platform application (desktop + mobile) for tracking music streaming statistics across platforms. It is built with a **Tauri 2** shell (Rust backend + WebView frontend) targeting macOS, iOS, and Android.
+Streaming Stats is a cross-platform application (desktop + mobile) for tracking music streaming statistics across platforms. It is built with a **Tauri 2** shell (Rust backend + WebView frontend) targeting macOS, Windows, iOS, and Android.
 
 ## High-Level Stack
 
