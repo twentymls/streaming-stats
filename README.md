@@ -2,16 +2,46 @@
 
 A desktop app that tracks streaming stats for music artists across 8 platforms using the [Songstats API](https://rapidapi.com/songstats-app-songstats-app-default/api/songstats). Built with Tauri (Rust + React).
 
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="720" />
+</p>
+
 ## Supported Platforms
 
 Spotify, Apple Music, YouTube, TikTok, Deezer, Amazon Music, Shazam, SoundCloud
 
+## Screenshots
+
+<details>
+<summary><b>Dashboard</b> — KPI cards, daily growth chart, platform share breakdown</summary>
+<br />
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="Dashboard view showing platform cards, KPI row, stacked bar chart, and growth share" width="720" />
+</p>
+</details>
+
+<details>
+<summary><b>Spotify Detail</b> — Monthly listeners, top tracks, trend charts</summary>
+<br />
+<p align="center">
+  <img src="docs/screenshots/spotify-detail.png" alt="Spotify detail view with stats grid, top tracks, and monthly listeners chart" width="720" />
+</p>
+</details>
+
+<details>
+<summary><b>TikTok Detail</b> — Views, top tracks, top curators</summary>
+<br />
+<p align="center">
+  <img src="docs/screenshots/tiktok-detail.png" alt="TikTok detail view with stats, top tracks by video count, and top curators" width="720" />
+</p>
+</details>
+
 ## How It Works
 
 1. **Setup** — Enter your RapidAPI key and a Spotify artist ID/URL. The app validates both before proceeding.
-2. **Daily tracking** — The app automatically fetches stats on launch (max 2x/day, at least 8 hours apart). All data is stored locally in a SQLite database.
-3. **Dashboard** — View current stats per platform, trend charts over time, and a distribution breakdown. Filter by 7/30/60/90 day periods.
-4. **Platform detail** — Click any platform card to see full stats, top tracks, trend charts, and (for TikTok) top curators. All detail data is served from the local cache — no API calls on view.
+2. **Daily tracking** — The app automatically fetches stats on launch (max 1x/day). All data is stored locally in a SQLite database.
+3. **Dashboard** — View current stats per platform, KPI cards (daily growth, Spotify streams/day, YouTube views/day), a stacked bar chart of daily growth by platform, and a growth share breakdown. Filter by 7/30/60/90 day periods. Toggle smoothing for 7-day rolling averages.
+4. **Platform detail** — Click any platform card to see full stats, top tracks with Songstats links, trend charts, and (for TikTok) top curators. All detail data is served from the local cache — no API calls on view.
 5. **Backfill** — One-time download of up to 90 days of historical data from Songstats (Settings > Backfill historic data).
 
 ### Data & Privacy
@@ -48,7 +78,7 @@ npm install
 ### Run in dev mode
 
 ```bash
-npx tauri dev
+export PATH="$HOME/.cargo/bin:$PATH" && npx tauri dev
 ```
 
 This starts the Vite dev server on `localhost:5173` and compiles the Rust backend. The app window opens automatically with hot-reload for frontend changes.
@@ -56,7 +86,7 @@ This starts the Vite dev server on `localhost:5173` and compiles the Rust backen
 ### Build for production
 
 ```bash
-npx tauri build --bundles app
+export PATH="$HOME/.cargo/bin:$PATH" && npx tauri build --bundles app
 ```
 
 The built app is output to:
@@ -64,53 +94,67 @@ The built app is output to:
 src-tauri/target/release/bundle/macos/Streaming Stats.app
 ```
 
+### Tests
+
+```bash
+npm test                                                    # Frontend (Vitest)
+export PATH="$HOME/.cargo/bin:$PATH" && cd src-tauri && cargo test   # Backend (Rust)
+```
+
+### Lint & Format
+
+```bash
+npm run lint:fix && npm run format                          # Frontend
+export PATH="$HOME/.cargo/bin:$PATH" && cd src-tauri && cargo clippy && cargo fmt  # Backend
+```
+
 ## Project Structure
 
 ```
 streaming-stats/
-├── src/                        # React frontend
-│   ├── App.tsx                 # Root component (setup vs dashboard routing)
-│   ├── main.tsx                # React entry point
+├── src/                        # React 19 frontend (TypeScript)
 │   ├── components/
-│   │   ├── Setup.tsx           # 3-step onboarding flow
 │   │   ├── Dashboard.tsx       # Main view with stats, charts, auto-fetch
 │   │   ├── PlatformCard.tsx    # Individual platform stat card
 │   │   ├── PlatformDetail.tsx  # Detail view with stats, top tracks, curators
-│   │   ├── StatsChart.tsx      # Trend line chart + distribution doughnut
-│   │   └── Settings.tsx        # Config, platform toggles, backfill button
+│   │   ├── KpiRow.tsx          # 6-card KPI summary row
+│   │   ├── DailyGrowthChart.tsx # Stacked bar chart by platform
+│   │   ├── GrowthShare.tsx     # Platform growth share bars
+│   │   ├── StatsChart.tsx      # Trend line chart
+│   │   ├── Setup.tsx           # 3-step onboarding flow
+│   │   └── Settings.tsx        # Config, platform toggles, backfill
 │   ├── lib/
-│   │   ├── songstats-api.ts    # Songstats API integration
-│   │   ├── database.ts         # Thin invoke() wrappers for Rust DB commands
-│   │   ├── settings.ts         # Tauri store for app settings
+│   │   ├── songstats-api.ts    # Songstats API client with retry logic
+│   │   ├── database.ts         # Tauri IPC wrappers for Rust DB commands
+│   │   ├── settings.ts         # Encrypted settings store
+│   │   ├── utils.ts            # Data aggregation and formatting
 │   │   ├── constants.ts        # Platform names, colors, stat labels
 │   │   └── types.ts            # TypeScript interfaces
 │   └── styles/
-│       └── globals.css         # Dark theme styling
-├── src-tauri/                  # Rust backend
-│   ├── Cargo.toml              # Rust dependencies
-│   ├── tauri.conf.json         # Tauri app config (window, CSP, plugins)
+│       └── globals.css         # Dark theme with CSS custom properties
+├── src-tauri/                  # Rust backend (Tauri 2)
 │   └── src/
-│       ├── lib.rs              # Tauri app setup (plugins, tray, DB pool, invoke handler)
-│       ├── commands.rs         # 13 Tauri commands (DB reads/writes)
-│       ├── db.rs               # SQLite pool creation and migrations
-│       ├── models.rs           # Rust structs (DailyStat, TopTrack, TopCurator)
+│       ├── lib.rs              # App setup (plugins, tray, DB pool)
+│       ├── commands.rs         # 16 Tauri IPC commands
+│       ├── db.rs               # SQLite pool and migrations
+│       ├── models.rs           # Serde models for IPC boundary
 │       └── error.rs            # Error types
-├── index.html                  # HTML shell
-├── vite.config.ts              # Vite bundler config
-├── tsconfig.json               # TypeScript config
-└── package.json                # Node dependencies and scripts
+├── docs/                       # Detailed documentation
+└── package.json
 ```
+
+See [`docs/`](docs/README.md) for detailed documentation on architecture, database schema, API integration, and more.
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Desktop framework | [Tauri v2](https://v2.tauri.app/) |
-| Frontend | React 19, TypeScript, Vite |
-| Backend | Rust |
-| Database | SQLite (via sqlx in Rust) |
-| Settings storage | tauri-plugin-store |
-| HTTP client | tauri-plugin-http (reqwest with brotli/gzip) |
+| Frontend | React 19, TypeScript 5.9, Vite 6 |
+| Backend | Rust (Edition 2021) |
+| Database | SQLite (via sqlx) |
+| Settings | tauri-plugin-store (encrypted) |
+| HTTP | tauri-plugin-http (reqwest) |
 | Charts | Chart.js + react-chartjs-2 |
-| Date utils | date-fns |
+| Dates | date-fns 4 |
 | API | [Songstats via RapidAPI](https://rapidapi.com/songstats-app-songstats-app-default/api/songstats) |
