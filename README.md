@@ -75,10 +75,21 @@ cd streaming-stats
 npm install
 ```
 
+### Add Cargo to PATH (one-time)
+
+Rust/Cargo is installed at `~/.cargo/bin` but isn't on the default shell PATH. Add it permanently:
+
+```bash
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+After this, all commands below work without the `export PATH` prefix.
+
 ### Run in dev mode
 
 ```bash
-export PATH="$HOME/.cargo/bin:$PATH" && npx tauri dev
+npx tauri dev
 ```
 
 This starts the Vite dev server on `localhost:5173` and compiles the Rust backend. The app window opens automatically with hot-reload for frontend changes.
@@ -86,7 +97,7 @@ This starts the Vite dev server on `localhost:5173` and compiles the Rust backen
 ### Build for production
 
 ```bash
-export PATH="$HOME/.cargo/bin:$PATH" && npx tauri build --bundles app
+npx tauri build --bundles app
 ```
 
 The built app is output to:
@@ -97,15 +108,15 @@ src-tauri/target/release/bundle/macos/Streaming Stats.app
 ### Tests
 
 ```bash
-npm test                                                    # Frontend (Vitest)
-export PATH="$HOME/.cargo/bin:$PATH" && cd src-tauri && cargo test   # Backend (Rust)
+npm test                                        # Frontend (Vitest)
+cd src-tauri && cargo test                      # Backend (Rust)
 ```
 
 ### Lint & Format
 
 ```bash
-npm run lint:fix && npm run format                          # Frontend
-export PATH="$HOME/.cargo/bin:$PATH" && cd src-tauri && cargo clippy && cargo fmt  # Backend
+npm run lint:fix && npm run format              # Frontend
+cd src-tauri && cargo clippy && cargo fmt       # Backend
 ```
 
 ## Project Structure
