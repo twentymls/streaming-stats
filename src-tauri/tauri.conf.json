@@ -43,9 +43,5 @@
       "minimumSystemVersion": "10.15"
     }
   },
-  "plugins": {
-    "sql": {
-      "preload": ["sqlite:streaming_stats.db"]
-    }
-  }
+  "plugins": {}
 }

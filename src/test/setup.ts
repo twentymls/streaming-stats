@@ -15,18 +15,10 @@ vi.mock("@tauri-apps/plugin-store", () => {
   };
 });
 
-// Mock @tauri-apps/plugin-sql
-vi.mock("@tauri-apps/plugin-sql", () => {
-  const mockDb = {
-    execute: vi.fn(async () => ({ rowsAffected: 0 })),
-    select: vi.fn(async () => []),
-  };
-  return {
-    default: {
-      load: vi.fn(async () => mockDb),
-    },
-  };
-});
+// Mock @tauri-apps/api/core
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(async () => []),
+}));
 
 // Mock @tauri-apps/plugin-http
 vi.mock("@tauri-apps/plugin-http", () => ({

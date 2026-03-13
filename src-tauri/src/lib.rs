@@ -5,11 +5,13 @@ use tauri::{
 };
 
 mod commands;
+mod db;
+mod error;
+mod models;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
@@ -36,6 +38,14 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // Initialize SQLite database pool
+            let app_data_dir = app.path().app_data_dir()?;
+            std::fs::create_dir_all(&app_data_dir)?;
+            let db_path = app_data_dir.join("streaming_stats.db");
+            let pool = tauri::async_runtime::block_on(db::create_pool(&db_path))
+                .map_err(|e| e.to_string())?;
+            app.manage(tokio::sync::Mutex::new(pool));
+
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
@@ -45,7 +55,21 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![commands::init_database])
+        .invoke_handler(tauri::generate_handler![
+            commands::get_latest_stats,
+            commands::get_stats_range,
+            commands::get_monthly_api_count,
+            commands::get_last_fetch_date,
+            commands::get_latest_top_tracks,
+            commands::get_latest_top_curators,
+            commands::get_top_track_deltas,
+            commands::get_all_cached_top_tracks,
+            commands::get_all_cached_top_curators,
+            commands::save_daily_stat,
+            commands::log_api_call,
+            commands::save_top_tracks,
+            commands::save_top_curators,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
