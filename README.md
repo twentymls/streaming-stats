@@ -6,6 +6,18 @@ A cross-platform app for desktop and mobile that tracks streaming stats for musi
   <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="720" />
 </p>
 
+## Download
+
+**[Download the latest release](https://github.com/petemiles/streaming-stats/releases/latest)**
+
+### macOS
+
+1. Download the `.dmg` file from the latest release
+2. Open the DMG and drag **Streaming Stats** to your Applications folder
+3. On first launch: right-click the app > **Open** (required for unsigned apps)
+
+> Windows, iOS, and Android builds are coming soon.
+
 ## Supported Targets
 
 | Platform | Status |
