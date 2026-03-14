@@ -6,6 +6,12 @@ A cross-platform app for desktop and mobile that tracks streaming stats for musi
   <img src="docs/screenshots/dashboard-1.png" alt="Dashboard" width="720" />
 </p>
 
+<p align="center">
+  <a href="https://github.com/twentymls/streaming-stats/releases/latest">
+    <img src="https://img.shields.io/github/v/release/twentymls/streaming-stats?include_prereleases&label=Download%20Latest&style=for-the-badge&color=1DB954" alt="Download Latest Release" />
+  </a>
+</p>
+
 ## Download
 
 **[Download the latest release](https://github.com/twentymls/streaming-stats/releases/latest)**
