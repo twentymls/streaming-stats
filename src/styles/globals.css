@@ -1010,6 +1010,13 @@ body {
   margin-top: 0.25rem;
 }
 
+.detail-hero-daily {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--positive);
+  margin-top: 0.5rem;
+}
+
 .yesterday-badge {
   font-size: var(--text-base);
   font-weight: 600;
