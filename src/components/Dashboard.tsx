@@ -25,7 +25,7 @@ import {
   TOP_TRACKS_SOURCES,
   TOP_CURATORS_SOURCES,
 } from "../lib/songstats-api";
-import { loadSettings, getAutoFetchState, recordFetch } from "../lib/settings";
+import { loadSettings, recordFetch, getScheduledFetchInfo } from "../lib/settings";
 import type { DailyStat, AppSettings, TopTrack, TopCurator } from "../lib/types";
 import { DSP_NAMES } from "../lib/constants";
 import {
@@ -51,7 +51,8 @@ export function Dashboard({ onReset }: DashboardProps) {
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [period, setPeriod] = useState(30);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
-  const [fetchesToday, setFetchesToday] = useState(0);
+  const [fetchedToday, setFetchedToday] = useState(false);
+  const [nextRefetchTime, setNextRefetchTime] = useState<Date | null>(null);
   const [cachedTopTracks, setCachedTopTracks] = useState<Map<string, TopTrack[]>>(new Map());
   const [cachedTopCurators, setCachedTopCurators] = useState<Map<string, TopCurator[]>>(new Map());
   const [topTrackDeltas, setTopTrackDeltas] = useState<Map<string, Map<string, number>>>(new Map());
@@ -120,133 +121,125 @@ export function Dashboard({ onReset }: DashboardProps) {
     loadData();
   }, [loadData]);
 
-  const handleFetch = useCallback(async () => {
-    if (!settings) return;
-    setLoading(true);
-    try {
-      await fetchAllStats(settings.api_key, settings.spotify_artist_id, settings.enabled_sources);
-      await fetchAndCacheTopContent(
-        settings.api_key,
-        settings.spotify_artist_id,
-        TOP_TRACKS_SOURCES,
-        TOP_CURATORS_SOURCES
-      );
-      await recordFetch();
-      setFetchesToday((prev) => prev + 1);
-      await loadData();
-    } catch (err) {
-      console.error("Fetch failed:", err);
-    }
-    setLoading(false);
-  }, [settings, loadData]);
-
-  const handleFetchWithInfo = async () => {
-    if (!settings) return;
-    setLoading(true);
-    try {
-      const info = await getArtistInfo(settings.api_key, settings.spotify_artist_id);
-      setArtistName(info.name);
-      await fetchAllStats(settings.api_key, settings.spotify_artist_id, settings.enabled_sources);
-      await fetchAndCacheTopContent(
-        settings.api_key,
-        settings.spotify_artist_id,
-        TOP_TRACKS_SOURCES,
-        TOP_CURATORS_SOURCES
-      );
-      await recordFetch();
-      setFetchesToday((prev) => prev + 1);
-      await loadData();
-    } catch (err) {
-      console.error("Fetch failed:", err);
-    }
-    setLoading(false);
-  };
-
-  // Auto-fetch on mount: first launch of the day, or 8+ hours since last fetch
-  useEffect(() => {
-    if (!settings) return;
-    let cancelled = false;
-
-    (async () => {
-      const { lastFetchIso, fetchCountToday } = await getAutoFetchState();
-      const today = new Date().toLocaleDateString("sv");
-      const lastDate = lastFetchIso?.slice(0, 10);
-      const effectiveCount = lastDate === today ? fetchCountToday : 0;
-      setFetchesToday(effectiveCount);
-
-      if (cancelled) return;
-
-      let shouldFetch = false;
-      if (!lastFetchIso || lastDate !== today) {
-        shouldFetch = true;
-      } else if (effectiveCount < 1) {
-        shouldFetch = true;
-      }
-
-      if (shouldFetch) {
-        setInitialLoading(true);
-        setLoading(true);
-        try {
-          const hasData = (await getLatestStats()).length > 0;
-          if (!hasData) {
-            const info = await getArtistInfo(settings.api_key, settings.spotify_artist_id);
-            setArtistName(info.name);
-            // One-time backfill of historic data on first launch
-            await fetchHistoricStats(
-              settings.api_key,
-              settings.spotify_artist_id,
-              settings.enabled_sources
-            );
-          }
-          await fetchAllStats(
+  // Perform a daily fetch — used by both immediate and scheduled paths
+  const performDailyFetch = useCallback(
+    async (hasData: boolean) => {
+      if (!settings) return;
+      setInitialLoading(true);
+      setLoading(true);
+      try {
+        if (!hasData) {
+          const info = await getArtistInfo(settings.api_key, settings.spotify_artist_id);
+          setArtistName(info.name);
+          await fetchHistoricStats(
             settings.api_key,
             settings.spotify_artist_id,
             settings.enabled_sources
           );
-          if (effectiveCount === 0) {
-            await fetchAndCacheTopContent(
-              settings.api_key,
-              settings.spotify_artist_id,
-              TOP_TRACKS_SOURCES,
-              TOP_CURATORS_SOURCES
-            );
-
-            // Fetch per-track stats weekly
-            const lastTrackStatsFetch = await getTrackStatsLastFetch("tiktok");
-            const daysSince = lastTrackStatsFetch
-              ? (Date.now() - new Date(lastTrackStatsFetch).getTime()) / 86400000
-              : Infinity;
-            if (daysSince >= 7) {
-              const latestTracks = await getAllCachedTopTracks();
-              const allTracks = [
-                ...(latestTracks.get("tiktok") ?? []),
-                ...(latestTracks.get("youtube") ?? []),
-              ];
-              const tracksWithIds = allTracks.filter((t) => t.songstats_track_id);
-              if (tracksWithIds.length > 0) {
-                await fetchAndCacheTrackStats(settings.api_key, tracksWithIds, [
-                  "tiktok",
-                  "youtube",
-                ]);
-              }
-            }
-          }
-          await recordFetch();
-          setFetchesToday((prev) => prev + 1);
-          await loadData();
-        } catch (err) {
-          console.error("Auto-fetch failed:", err);
-        } finally {
-          setLoading(false);
-          setInitialLoading(false);
         }
+        await fetchAllStats(settings.api_key, settings.spotify_artist_id, settings.enabled_sources);
+        await fetchAndCacheTopContent(
+          settings.api_key,
+          settings.spotify_artist_id,
+          TOP_TRACKS_SOURCES,
+          TOP_CURATORS_SOURCES
+        );
+
+        // Fetch per-track stats weekly
+        const lastTrackStatsFetch = await getTrackStatsLastFetch("tiktok");
+        const daysSince = lastTrackStatsFetch
+          ? (Date.now() - new Date(lastTrackStatsFetch).getTime()) / 86400000
+          : Infinity;
+        if (daysSince >= 7) {
+          const latestTracks = await getAllCachedTopTracks();
+          const allTracks = [
+            ...(latestTracks.get("tiktok") ?? []),
+            ...(latestTracks.get("youtube") ?? []),
+          ];
+          const tracksWithIds = allTracks.filter((t) => t.songstats_track_id);
+          if (tracksWithIds.length > 0) {
+            await fetchAndCacheTrackStats(settings.api_key, tracksWithIds, ["tiktok", "youtube"]);
+          }
+        }
+
+        await recordFetch();
+        setFetchedToday(true);
+        setNextRefetchTime(null);
+        await loadData();
+      } catch (err) {
+        console.error("Auto-fetch failed:", err);
+      } finally {
+        setLoading(false);
+        setInitialLoading(false);
       }
+    },
+    [settings, loadData]
+  );
+
+  // Scheduled auto-fetch: determines whether to fetch now, defer, or skip
+  useEffect(() => {
+    if (!settings) return;
+    let cancelled = false;
+    let fetchTimer: ReturnType<typeof setTimeout> | undefined;
+    let midnightTimer: ReturnType<typeof setTimeout> | undefined;
+
+    (async () => {
+      const hasData = (await getLatestStats()).length > 0;
+      const schedule = await getScheduledFetchInfo(hasData);
+
+      if (cancelled) return;
+
+      if (schedule.shouldFetchNow) {
+        await performDailyFetch(hasData);
+      } else if (schedule.shouldDeferToFetchHour) {
+        // Show "Next update at ..." and set a timer
+        const target = new Date(Date.now() + schedule.msUntilFetchHour);
+        setNextRefetchTime(target);
+        fetchTimer = setTimeout(async () => {
+          if (cancelled) return;
+          const currentHasData = (await getLatestStats()).length > 0;
+          await performDailyFetch(currentHasData);
+        }, schedule.msUntilFetchHour);
+      } else {
+        // Already fetched today
+        setFetchedToday(true);
+      }
+
+      // Midnight timer: reset state for the new day
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setDate(midnight.getDate() + 1);
+      midnight.setHours(0, 0, 0, 0);
+      const msUntilMidnight = midnight.getTime() - now.getTime();
+
+      midnightTimer = setTimeout(async () => {
+        if (cancelled) return;
+        setFetchedToday(false);
+        setNextRefetchTime(null);
+
+        // Re-evaluate schedule for the new day
+        const currentHasData = (await getLatestStats()).length > 0;
+        const newSchedule = await getScheduledFetchInfo(currentHasData);
+        if (newSchedule.shouldFetchNow) {
+          await performDailyFetch(currentHasData);
+        } else if (newSchedule.shouldDeferToFetchHour) {
+          const target = new Date(Date.now() + newSchedule.msUntilFetchHour);
+          setNextRefetchTime(target);
+          fetchTimer = setTimeout(async () => {
+            if (cancelled) return;
+            const hasDataNow = (await getLatestStats()).length > 0;
+            await performDailyFetch(hasDataNow);
+          }, newSchedule.msUntilFetchHour);
+        }
+      }, msUntilMidnight);
     })();
 
     return () => {
       cancelled = true;
+      if (fetchTimer) clearTimeout(fetchTimer);
+      if (midnightTimer) clearTimeout(midnightTimer);
     };
-  }, [settings?.api_key]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [settings?.api_key, performDailyFetch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const smoothed = true;
 
@@ -323,13 +316,15 @@ export function Dashboard({ onReset }: DashboardProps) {
           </div>
           <div className="header-right">
             <div className="api-badge">API: {apiCount}/500</div>
-            <button
-              onClick={latestStats.size === 0 ? handleFetchWithInfo : handleFetch}
-              disabled={loading || fetchesToday >= 1}
-              className="btn btn-primary"
-            >
-              {loading ? "Updating..." : fetchesToday >= 1 ? "Done for today" : "Update"}
-            </button>
+            <span className="fetch-status">
+              {loading
+                ? "Updating..."
+                : nextRefetchTime
+                  ? `Next update at ${format(nextRefetchTime, "h:mm a")}`
+                  : fetchedToday
+                    ? "Up to date"
+                    : ""}
+            </span>
             <button onClick={() => setShowSettings(true)} className="btn">
               Settings
             </button>
@@ -339,7 +334,7 @@ export function Dashboard({ onReset }: DashboardProps) {
         {latestStats.size === 0 ? (
           <div className="empty-state">
             <h2>No data yet</h2>
-            <p>Click "Update" to fetch your first stats from all platforms.</p>
+            <p>Fetching your stats from all platforms...</p>
           </div>
         ) : (
           <>
