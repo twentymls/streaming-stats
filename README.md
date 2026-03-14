@@ -18,9 +18,15 @@ A cross-platform app for desktop and mobile that tracks streaming stats for musi
 
 ### macOS
 
-1. Download the `.dmg` file from the latest release
+1. Download the `.dmg` file above
 2. Open the DMG and drag **Streaming Stats** to your Applications folder
-3. On first launch: right-click the app > **Open** (required for unsigned apps)
+3. **Before opening for the first time**, open Terminal and run:
+   ```
+   xattr -cr "/Applications/Streaming Stats.app"
+   ```
+4. Now open the app normally
+
+> **Why is this needed?** The app is not yet signed with an Apple Developer certificate (yet), so macOS blocks it by default. The command above removes the download quarantine flag. This is a one-time step — you won't need to do it again.
 
 > Windows, iOS, and Android builds are coming soon.
 
@@ -66,7 +72,7 @@ Spotify, Apple Music, YouTube, TikTok, Deezer, Amazon Music, Shazam, SoundCloud,
 
 ## How It Works
 
-1. **Setup** — Enter your RapidAPI key and a Spotify artist ID/URL. The app validates both before proceeding.
+1. **Setup** — Enter your RapidAPI key (instructions and links provided) and a Spotify artist ID/URL. The app validates both before proceeding.
 2. **Daily tracking** — The app automatically fetches stats on launch (max 1x/day). All data is stored locally in a SQLite database.
 3. **Dashboard** — View current stats per platform, KPI cards (daily growth, Spotify streams/day, YouTube views/day), a stacked bar chart of daily growth by platform, and a growth share breakdown. Filter by 7/30/60/90 day periods. Toggle smoothing for 7-day rolling averages.
 4. **Platform detail** — Click any platform card to see full stats, top tracks with Songstats links, trend charts, and (for TikTok) top curators. All detail data is served from the local cache — no API calls on view.
