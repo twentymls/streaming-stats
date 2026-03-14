@@ -66,7 +66,7 @@ describe("getHeroStat", () => {
 });
 
 describe("HERO_STAT_PRIORITY", () => {
-  it("has entries for all 8 default platforms", () => {
+  it("has entries for all 9 default platforms", () => {
     const platforms = [
       "spotify",
       "youtube",
@@ -76,6 +76,7 @@ describe("HERO_STAT_PRIORITY", () => {
       "apple_music",
       "deezer",
       "amazon",
+      "instagram",
     ];
     for (const p of platforms) {
       expect(HERO_STAT_PRIORITY[p]).toBeDefined();
@@ -85,7 +86,7 @@ describe("HERO_STAT_PRIORITY", () => {
 });
 
 describe("PLAY_COUNT_STAT", () => {
-  it("has entries for all 8 default platforms", () => {
+  it("has entries for all 9 default platforms", () => {
     const platforms = [
       "spotify",
       "youtube",
@@ -95,6 +96,7 @@ describe("PLAY_COUNT_STAT", () => {
       "apple_music",
       "deezer",
       "amazon",
+      "instagram",
     ];
     for (const p of platforms) {
       expect(PLAY_COUNT_STAT[p]).toBeDefined();

@@ -34,7 +34,7 @@ describe("settings", () => {
       expect(result!.api_key).toBe("test-key-123");
       expect(result!.spotify_artist_id).toBe("artist-id");
       expect(result!.artist_name).toBe("");
-      expect(result!.enabled_sources).toHaveLength(8);
+      expect(result!.enabled_sources).toHaveLength(9);
       expect(result!.fetch_hour).toBe(14);
     });
   });

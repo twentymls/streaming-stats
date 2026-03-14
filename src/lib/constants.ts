@@ -7,6 +7,7 @@ export const DSP_COLORS: Record<string, string> = {
   amazon: "#00A8E1",
   shazam: "#0088FF",
   soundcloud: "#FF5500",
+  instagram: "#E4405F",
 };
 
 /** Chart-safe colors — overrides TikTok's #010101 which is invisible on dark backgrounds */
@@ -24,6 +25,7 @@ export const DSP_NAMES: Record<string, string> = {
   amazon: "Amazon Music",
   shazam: "Shazam",
   soundcloud: "SoundCloud",
+  instagram: "Instagram",
 };
 
 export const DSP_STAT_LABELS: Record<string, string> = {
@@ -90,6 +92,7 @@ export const DEFAULT_SOURCES = [
   "amazon",
   "shazam",
   "soundcloud",
+  "instagram",
 ];
 
 export const CHART_THEME = {

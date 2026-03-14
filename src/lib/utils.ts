@@ -35,6 +35,7 @@ export const HERO_STAT_PRIORITY: Record<string, string[]> = {
   apple_music: ["streams", "playlist_reach"],
   deezer: ["streams", "followers"],
   amazon: ["streams", "followers"],
+  instagram: ["followers", "likes", "views"],
 };
 
 export function getHeroStat(
@@ -116,6 +117,7 @@ export const PLAY_COUNT_STAT: Record<string, string> = {
   tiktok: "views",
   soundcloud: "plays",
   shazam: "shazams",
+  instagram: "likes",
 };
 
 export function computeDailyDeltas(stats: DailyStat[], statType: string): DailyStat[] {

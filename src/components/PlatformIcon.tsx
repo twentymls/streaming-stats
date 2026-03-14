@@ -5,6 +5,7 @@ import {
   SiTiktok,
   SiShazam,
   SiSoundcloud,
+  SiInstagram,
 } from "react-icons/si";
 import type { IconType } from "react-icons";
 import { DSP_COLORS } from "../lib/constants";
@@ -16,6 +17,7 @@ const PLATFORM_ICONS: Record<string, IconType> = {
   tiktok: SiTiktok,
   shazam: SiShazam,
   soundcloud: SiSoundcloud,
+  instagram: SiInstagram,
 };
 
 export function PlatformIcon({ source, size = 20 }: { source: string; size?: number }) {
