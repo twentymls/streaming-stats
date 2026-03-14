@@ -59,14 +59,14 @@ vi.mock("../lib/songstats-api", () => ({
 
 // Mock settings
 const mockLoadSettings = vi.fn();
-const mockGetAutoFetchState = vi.fn();
+const mockGetScheduledFetchInfo = vi.fn();
 const mockRecordFetch = vi.fn(async () => {});
 vi.mock("../lib/settings", () => ({
   get loadSettings() {
     return mockLoadSettings;
   },
-  get getAutoFetchState() {
-    return mockGetAutoFetchState;
+  get getScheduledFetchInfo() {
+    return mockGetScheduledFetchInfo;
   },
   get recordFetch() {
     return mockRecordFetch;
@@ -78,6 +78,7 @@ const defaultSettings = {
   spotify_artist_id: "abc123",
   artist_name: "Test Artist",
   enabled_sources: ["spotify"],
+  fetch_hour: 14,
 };
 
 describe("Dashboard", () => {
@@ -86,8 +87,12 @@ describe("Dashboard", () => {
   });
 
   it("shows loading overlay during initial auto-fetch", async () => {
-    // Make auto-fetch trigger (no last fetch)
-    mockGetAutoFetchState.mockResolvedValue({ lastFetchIso: null, fetchCountToday: 0 });
+    // Schedule says fetch now
+    mockGetScheduledFetchInfo.mockResolvedValue({
+      shouldFetchNow: true,
+      shouldDeferToFetchHour: false,
+      msUntilFetchHour: 0,
+    });
 
     // Settings loads immediately
     mockLoadSettings.mockResolvedValue(defaultSettings);
@@ -124,21 +129,72 @@ describe("Dashboard", () => {
     });
   });
 
-  it("does not show loading overlay when auto-fetch is not needed", async () => {
-    mockGetAutoFetchState.mockResolvedValue({
-      lastFetchIso: new Date().toISOString(),
-      fetchCountToday: 2,
+  it("does not show loading overlay when already fetched today", async () => {
+    // Schedule says already done
+    mockGetScheduledFetchInfo.mockResolvedValue({
+      shouldFetchNow: false,
+      shouldDeferToFetchHour: false,
+      msUntilFetchHour: 0,
     });
     mockLoadSettings.mockResolvedValue(defaultSettings);
 
     render(<Dashboard onReset={() => {}} />);
 
-    // Wait for settings to load and auto-fetch check to complete
+    // Wait for settings to load and schedule check to complete
     await waitFor(() => {
-      expect(mockGetAutoFetchState).toHaveBeenCalled();
+      expect(mockGetScheduledFetchInfo).toHaveBeenCalled();
     });
 
     // Overlay should not be present
     expect(document.querySelector(".loading-overlay")).not.toBeInTheDocument();
+  });
+
+  it("does not render an Update button", async () => {
+    mockGetScheduledFetchInfo.mockResolvedValue({
+      shouldFetchNow: false,
+      shouldDeferToFetchHour: false,
+      msUntilFetchHour: 0,
+    });
+    mockLoadSettings.mockResolvedValue(defaultSettings);
+
+    render(<Dashboard onReset={() => {}} />);
+
+    await waitFor(() => {
+      expect(mockGetScheduledFetchInfo).toHaveBeenCalled();
+    });
+
+    expect(screen.queryByText("Update")).not.toBeInTheDocument();
+    expect(screen.queryByText("Done for today")).not.toBeInTheDocument();
+  });
+
+  it("shows 'Up to date' status when already fetched today", async () => {
+    mockGetScheduledFetchInfo.mockResolvedValue({
+      shouldFetchNow: false,
+      shouldDeferToFetchHour: false,
+      msUntilFetchHour: 0,
+    });
+    mockLoadSettings.mockResolvedValue(defaultSettings);
+
+    render(<Dashboard onReset={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Up to date")).toBeInTheDocument();
+    });
+  });
+
+  it("shows 'Next update at' status when deferred", async () => {
+    // Defer for 2 hours
+    mockGetScheduledFetchInfo.mockResolvedValue({
+      shouldFetchNow: false,
+      shouldDeferToFetchHour: true,
+      msUntilFetchHour: 2 * 60 * 60 * 1000,
+    });
+    mockLoadSettings.mockResolvedValue(defaultSettings);
+
+    render(<Dashboard onReset={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Next update at/)).toBeInTheDocument();
+    });
   });
 });
