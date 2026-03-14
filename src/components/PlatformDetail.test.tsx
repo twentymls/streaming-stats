@@ -244,6 +244,76 @@ describe("PlatformDetail", () => {
     expect(item).toHaveAttribute("href", "https://tiktok.com/@curator");
   });
 
+  it("renders track artwork for safe URLs", () => {
+    render(
+      <PlatformDetail
+        {...defaultProps}
+        topTracks={[
+          {
+            title: "Art Track",
+            streams: 5000,
+            artwork_url: "https://i.scdn.co/image/abc123",
+          },
+        ]}
+      />
+    );
+    const img = document.querySelector("img.top-track-artwork");
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("src", "https://i.scdn.co/image/abc123");
+  });
+
+  it("does not render track artwork for unsafe URLs", () => {
+    render(
+      <PlatformDetail
+        {...defaultProps}
+        topTracks={[
+          {
+            title: "Unsafe Art Track",
+            streams: 5000,
+            artwork_url: "javascript:alert(1)",
+          },
+        ]}
+      />
+    );
+    expect(document.querySelector("img.top-track-artwork")).not.toBeInTheDocument();
+  });
+
+  it("renders curator image for safe URLs", () => {
+    render(
+      <PlatformDetail
+        {...defaultProps}
+        source="tiktok"
+        stats={{ views: 1000, creates: 500 }}
+        topCurators={[
+          {
+            curator_name: "Safe Curator",
+            image_url: "https://p16-sign.tiktokcdn.com/img123",
+          },
+        ]}
+      />
+    );
+    const img = document.querySelector("img.top-track-artwork");
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("src", "https://p16-sign.tiktokcdn.com/img123");
+  });
+
+  it("does not render curator image for unsafe URLs", () => {
+    render(
+      <PlatformDetail
+        {...defaultProps}
+        source="tiktok"
+        stats={{ views: 1000, creates: 500 }}
+        topCurators={[
+          {
+            curator_name: "Unsafe Curator",
+            image_url: "javascript:alert(1)",
+          },
+        ]}
+      />
+    );
+    expect(document.querySelector("img.top-track-artwork")).not.toBeInTheDocument();
+  });
+
   it("renders Apple Music with playlist_reach data: 2 charts (Playlist Reach + Daily Streams)", () => {
     const today = new Date().toISOString().slice(0, 10);
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
