@@ -1,8 +1,8 @@
 import { DEFAULT_SOURCES, DSP_COLORS, DSP_NAMES } from "./constants";
 
 describe("DEFAULT_SOURCES", () => {
-  it("has 8 entries", () => {
-    expect(DEFAULT_SOURCES).toHaveLength(8);
+  it("has 9 entries", () => {
+    expect(DEFAULT_SOURCES).toHaveLength(9);
   });
 
   it("contains expected platforms", () => {

@@ -140,6 +140,17 @@ export function Dashboard({ onReset }: DashboardProps) {
             settings.spotify_artist_id,
             settings.enabled_sources
           );
+        } else {
+          // Backfill historic data for sources with < 3 days of data (newly added)
+          const sparseSources = settings.enabled_sources.filter((s) => {
+            const dates = new Set(
+              historicStats.filter((st) => st.source === s).map((st) => st.date)
+            );
+            return dates.size < 3;
+          });
+          if (sparseSources.length > 0) {
+            await fetchHistoricStats(settings.api_key, settings.spotify_artist_id, sparseSources);
+          }
         }
         await fetchAllStats(settings.api_key, settings.spotify_artist_id, settings.enabled_sources);
         await fetchAndCacheTopContent(
@@ -177,7 +188,7 @@ export function Dashboard({ onReset }: DashboardProps) {
         setInitialLoading(false);
       }
     },
-    [settings, loadData]
+    [settings, loadData, historicStats]
   );
 
   // Scheduled auto-fetch: determines whether to fetch now, defer, or skip

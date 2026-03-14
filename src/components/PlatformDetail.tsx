@@ -70,6 +70,7 @@ export function PlatformDetail({
     youtube: ["monthly_audience", "followers"],
     apple_music: ["playlist_reach"],
     tiktok: ["followers"],
+    instagram: ["followers"],
   };
 
   // Compute yesterday's delta for each stat type
@@ -268,7 +269,7 @@ export function PlatformDetail({
             title={`${DSP_STAT_LABELS[trendStatType] ?? trendStatType} over time`}
             statType={trendStatType}
           />
-          {playCountKey !== trendStatType && (
+          {playCountKey !== trendStatType && source !== "instagram" && (
             <DailyDeltasChart stats={filteredHistoric} playCountKey={playCountKey} />
           )}
         </>
