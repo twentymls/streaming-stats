@@ -1,6 +1,6 @@
 # Streaming Stats
 
-A cross-platform app for desktop and mobile that tracks streaming stats for music artists across 9 platforms using the [Songstats API](https://rapidapi.com/songstats-app-songstats-app-default/api/songstats). Built with Tauri 2 (Rust + React). Runs on macOS, Windows, iOS, and Android.
+A cross-platform desktop app that tracks streaming stats for music artists across 9 platforms. Powered by the [Songstats API](https://rapidapi.com/songstats-app-songstats-app-default/api/songstats) **free tier** (500 requests/month — enough for daily tracking of one artist). Built with Tauri 2 (Rust + React).
 
 <p align="center">
   <img src="docs/screenshots/dashboard-1.png" alt="Dashboard" width="720" />
