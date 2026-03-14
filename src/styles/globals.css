@@ -369,6 +369,21 @@ body {
   color: var(--text-secondary);
 }
 
+/* Fetch status indicator */
+.fetch-status {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Settings hint text */
+.settings-hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
 /* Section headers */
 .section-header {
   margin-bottom: 1rem;

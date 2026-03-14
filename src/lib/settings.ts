@@ -12,7 +12,7 @@ export async function loadSettings(): Promise<AppSettings | null> {
   const spotifyArtistId = (await store.get<string>("spotify_artist_id")) ?? "";
   const artistName = (await store.get<string>("artist_name")) ?? "";
   const enabledSources = (await store.get<string[]>("enabled_sources")) ?? DEFAULT_SOURCES;
-  const fetchHour = (await store.get<number>("fetch_hour")) ?? 6;
+  const fetchHour = (await store.get<number>("fetch_hour")) ?? 14;
 
   return {
     api_key: apiKey,
@@ -55,6 +55,54 @@ export async function getAutoFetchState(): Promise<{
   }
 
   return { lastFetchIso, fetchCountToday };
+}
+
+export interface FetchScheduleInfo {
+  shouldFetchNow: boolean;
+  shouldDeferToFetchHour: boolean;
+  msUntilFetchHour: number;
+}
+
+export async function getScheduledFetchInfo(hasData: boolean): Promise<FetchScheduleInfo> {
+  const { lastFetchIso, fetchCountToday } = await getAutoFetchState();
+  const store = await load(STORE_NAME);
+  const fetchHour = (await store.get<number>("fetch_hour")) ?? 14;
+
+  const now = new Date();
+  const today = now.toLocaleDateString("sv");
+  const lastDate = lastFetchIso?.slice(0, 10);
+  const effectiveCount = lastDate === today ? fetchCountToday : 0;
+
+  // Already fetched today — nothing to do
+  if (effectiveCount >= 1) {
+    return { shouldFetchNow: false, shouldDeferToFetchHour: false, msUntilFetchHour: 0 };
+  }
+
+  // No data at all (first launch) → fetch immediately
+  if (!hasData || !lastFetchIso) {
+    return { shouldFetchNow: true, shouldDeferToFetchHour: false, msUntilFetchHour: 0 };
+  }
+
+  // Missed day(s) — last fetch was 2+ days ago → catch-up immediately
+  if (lastDate && lastDate < today) {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toLocaleDateString("sv");
+    if (lastDate < yesterdayStr) {
+      return { shouldFetchNow: true, shouldDeferToFetchHour: false, msUntilFetchHour: 0 };
+    }
+  }
+
+  // Current hour >= fetch_hour → fetch now
+  if (now.getHours() >= fetchHour) {
+    return { shouldFetchNow: true, shouldDeferToFetchHour: false, msUntilFetchHour: 0 };
+  }
+
+  // Before fetch_hour today — defer
+  const target = new Date(now);
+  target.setHours(fetchHour, 0, 0, 0);
+  const ms = target.getTime() - now.getTime();
+  return { shouldFetchNow: false, shouldDeferToFetchHour: true, msUntilFetchHour: ms };
 }
 
 export async function recordFetch(): Promise<void> {
