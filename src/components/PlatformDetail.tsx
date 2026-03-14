@@ -7,6 +7,7 @@ import { format, subDays } from "date-fns";
 import {
   formatNumber,
   getHeroStat,
+  isSafeUrl,
   PLAY_COUNT_STAT,
   computeRollingAverageDeltas,
   computeYesterdayDelta,
@@ -175,7 +176,7 @@ export function PlatformDetail({
                 <div className="top-track-info">
                   <div className="top-track-title">
                     {track.title}
-                    {track.songstats_url && (
+                    {track.songstats_url && isSafeUrl(track.songstats_url) && (
                       <a
                         href={track.songstats_url}
                         target="_blank"
@@ -220,32 +221,38 @@ export function PlatformDetail({
             <div className="top-tracks-empty">Top curators not available</div>
           ) : (
             <div className="top-tracks-list">
-              {topCurators.slice(0, 10).map((curator, i) => (
-                <a
-                  key={i}
-                  className="top-track-item"
-                  href={curator.external_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ textDecoration: "none", color: "inherit" }}
-                >
-                  <span className="top-track-rank">{i + 1}</span>
-                  {curator.image_url != null && (
-                    <img
-                      className="top-track-artwork"
-                      src={curator.image_url}
-                      alt=""
-                      style={{ borderRadius: "50%" }}
-                    />
-                  )}
-                  <div className="top-track-info">
-                    <div className="top-track-title">{curator.curator_name}</div>
-                    <div className="top-track-streams">
-                      {curator.followers_total != null && `${curator.followers_total} followers`}
+              {topCurators.slice(0, 10).map((curator, i) => {
+                const Wrapper =
+                  curator.external_url && isSafeUrl(curator.external_url) ? "a" : "div";
+                const wrapperProps =
+                  Wrapper === "a"
+                    ? {
+                        href: curator.external_url,
+                        target: "_blank" as const,
+                        rel: "noopener noreferrer",
+                        style: { textDecoration: "none", color: "inherit" },
+                      }
+                    : { style: { textDecoration: "none", color: "inherit" } };
+                return (
+                  <Wrapper key={i} className="top-track-item" {...wrapperProps}>
+                    <span className="top-track-rank">{i + 1}</span>
+                    {curator.image_url != null && (
+                      <img
+                        className="top-track-artwork"
+                        src={curator.image_url}
+                        alt=""
+                        style={{ borderRadius: "50%" }}
+                      />
+                    )}
+                    <div className="top-track-info">
+                      <div className="top-track-title">{curator.curator_name}</div>
+                      <div className="top-track-streams">
+                        {curator.followers_total != null && `${curator.followers_total} followers`}
+                      </div>
                     </div>
-                  </div>
-                </a>
-              ))}
+                  </Wrapper>
+                );
+              })}
             </div>
           )}
         </div>

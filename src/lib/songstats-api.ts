@@ -44,7 +44,7 @@ async function apiGet(
     }
 
     if (!response.ok) {
-      throw new Error(`API error ${response.status}: ${await response.text()}`);
+      throw new Error(`API error ${response.status}`);
     }
 
     return await response.json();

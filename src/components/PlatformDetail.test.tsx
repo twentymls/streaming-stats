@@ -190,6 +190,60 @@ describe("PlatformDetail", () => {
     expect(charts[1]).toHaveTextContent("Daily Views (14d avg)");
   });
 
+  it("renders songstats link for tracks with safe URLs", () => {
+    render(
+      <PlatformDetail
+        {...defaultProps}
+        topTracks={[
+          { title: "Safe Track", streams: 5000, songstats_url: "https://songstats.com/track/123" },
+        ]}
+      />
+    );
+    const link = screen.getByText("View on Songstats");
+    expect(link).toHaveAttribute("href", "https://songstats.com/track/123");
+  });
+
+  it("does not render songstats link for tracks with javascript: URLs", () => {
+    render(
+      <PlatformDetail
+        {...defaultProps}
+        topTracks={[{ title: "Unsafe Track", streams: 5000, songstats_url: "javascript:alert(1)" }]}
+      />
+    );
+    expect(screen.queryByText("View on Songstats")).not.toBeInTheDocument();
+  });
+
+  it("renders curator as div when external_url is unsafe", () => {
+    render(
+      <PlatformDetail
+        {...defaultProps}
+        source="tiktok"
+        stats={{ views: 1000, creates: 500 }}
+        topCurators={[{ curator_name: "Bad Curator", external_url: "javascript:alert(1)" }]}
+      />
+    );
+    expect(screen.getByText("Bad Curator")).toBeInTheDocument();
+    // Should not be wrapped in an anchor tag
+    const item = screen.getByText("Bad Curator").closest(".top-track-item");
+    expect(item?.tagName).toBe("DIV");
+  });
+
+  it("renders curator as link when external_url is safe", () => {
+    render(
+      <PlatformDetail
+        {...defaultProps}
+        source="tiktok"
+        stats={{ views: 1000, creates: 500 }}
+        topCurators={[
+          { curator_name: "Good Curator", external_url: "https://tiktok.com/@curator" },
+        ]}
+      />
+    );
+    const item = screen.getByText("Good Curator").closest(".top-track-item");
+    expect(item?.tagName).toBe("A");
+    expect(item).toHaveAttribute("href", "https://tiktok.com/@curator");
+  });
+
   it("renders Apple Music with playlist_reach data: 2 charts (Playlist Reach + Daily Streams)", () => {
     const today = new Date().toISOString().slice(0, 10);
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
