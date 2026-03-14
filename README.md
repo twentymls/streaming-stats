@@ -1,6 +1,6 @@
 # Streaming Stats
 
-A cross-platform app for desktop and mobile that tracks streaming stats for music artists across 8 platforms using the [Songstats API](https://rapidapi.com/songstats-app-songstats-app-default/api/songstats). Built with Tauri 2 (Rust + React). Runs on macOS, Windows, iOS, and Android.
+A cross-platform app for desktop and mobile that tracks streaming stats for music artists across 9 platforms using the [Songstats API](https://rapidapi.com/songstats-app-songstats-app-default/api/songstats). Built with Tauri 2 (Rust + React). Runs on macOS, Windows, iOS, and Android.
 
 <p align="center">
   <img src="docs/screenshots/dashboard-1.png" alt="Dashboard" width="720" />
@@ -29,7 +29,7 @@ A cross-platform app for desktop and mobile that tracks streaming stats for musi
 
 ## Supported Music Platforms
 
-Spotify, Apple Music, YouTube, TikTok, Deezer, Amazon Music, Shazam, SoundCloud
+Spotify, Apple Music, YouTube, TikTok, Deezer, Amazon Music, Shazam, SoundCloud, Instagram
 
 ## Screenshots
 
@@ -76,7 +76,7 @@ No data is sent anywhere except the Songstats API calls to fetch stats.
 
 ### API Usage
 
-The app uses the Songstats API via RapidAPI. The **BASIC plan** allows 500 requests/month. The daily update uses ~15 API calls (8 platform stats + 6 top tracks + 1 top curators). Per-track stats are refreshed weekly (~10 calls). Once-a-day updates keep monthly usage under 500 calls. Top tracks and curators are stored in the local DB during the daily fetch, so detail views read directly from the database without making API calls. A backfill uses ~8 calls. The dashboard shows your current monthly usage.
+The app uses the Songstats API via RapidAPI. The **BASIC plan** allows 500 requests/month. The daily update uses ~16 API calls (9 platform stats + 6 top tracks + 1 top curators). Per-track stats are refreshed weekly (~10 calls). Once-a-day updates keep monthly usage under 500 calls. Top tracks and curators are stored in the local DB during the daily fetch, so detail views read directly from the database without making API calls. A backfill uses ~9 calls. The dashboard shows your current monthly usage.
 
 A 1.2 second delay is added between platform requests to stay within the per-second rate limit.
 
