@@ -170,7 +170,7 @@ export function PlatformDetail({
             {topTracks.map((track, i) => (
               <div key={i} className="top-track-item">
                 <span className="top-track-rank">{i + 1}</span>
-                {track.artwork_url && (
+                {track.artwork_url && isSafeUrl(track.artwork_url) && (
                   <img className="top-track-artwork" src={track.artwork_url} alt="" />
                 )}
                 <div className="top-track-info">
@@ -236,7 +236,7 @@ export function PlatformDetail({
                 return (
                   <Wrapper key={i} className="top-track-item" {...wrapperProps}>
                     <span className="top-track-rank">{i + 1}</span>
-                    {curator.image_url != null && (
+                    {curator.image_url != null && isSafeUrl(curator.image_url) && (
                       <img
                         className="top-track-artwork"
                         src={curator.image_url}
