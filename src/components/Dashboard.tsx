@@ -56,7 +56,9 @@ export function Dashboard({ onReset }: DashboardProps) {
   const [cachedTopTracks, setCachedTopTracks] = useState<Map<string, TopTrack[]>>(new Map());
   const [cachedTopCurators, setCachedTopCurators] = useState<Map<string, TopCurator[]>>(new Map());
   const [topTrackDeltas, setTopTrackDeltas] = useState<Map<string, Map<string, number>>>(new Map());
-  const [trackStats, setTrackStats] = useState<Map<string, Record<string, number>>>(new Map());
+  const [trackStats, setTrackStats] = useState<Map<string, Map<string, Record<string, number>>>>(
+    new Map()
+  );
 
   const loadData = useCallback(async () => {
     const s = await loadSettings();
@@ -97,19 +99,21 @@ export function Dashboard({ onReset }: DashboardProps) {
     }
     setTopTrackDeltas(deltas);
 
-    // Load per-track stats for tracks that have songstats_track_id
-    const tsMap = new Map<string, Record<string, number>>();
+    // Load per-track stats for tracks that have songstats_track_id, grouped by source
+    const tsMap = new Map<string, Map<string, Record<string, number>>>();
     for (const [, trackList] of tracks) {
       for (const track of trackList) {
         if (!track.songstats_track_id) continue;
         for (const src of ["tiktok", "youtube"]) {
           const ts = await getLatestTrackStats(track.songstats_track_id, src);
           if (ts.length > 0) {
-            const existing = tsMap.get(track.songstats_track_id) ?? {};
+            if (!tsMap.has(src)) tsMap.set(src, new Map());
+            const sourceMap = tsMap.get(src)!;
+            const existing = sourceMap.get(track.songstats_track_id) ?? {};
             for (const s of ts) {
               existing[s.stat_type] = s.value;
             }
-            tsMap.set(track.songstats_track_id, existing);
+            sourceMap.set(track.songstats_track_id, existing);
           }
         }
       }
@@ -292,7 +296,7 @@ export function Dashboard({ onReset }: DashboardProps) {
         topTracks={cachedTopTracks.get(selectedPlatform) ?? []}
         topCurators={cachedTopCurators.get(selectedPlatform) ?? []}
         topTrackDeltas={topTrackDeltas.get(selectedPlatform)}
-        trackStats={trackStats}
+        trackStats={trackStats.get(selectedPlatform)}
         onBack={() => setSelectedPlatform(null)}
       />
     );
