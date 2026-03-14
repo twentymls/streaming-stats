@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.0-beta.3] - 2026-03-14
+
+### Added
+
+- Instagram as a 9th platform source with follower trend chart, icon, and brand color
+- Custom app icon (bar chart logo)
+- Scheduled daily fetch with configurable fetch hour (default 2 PM)
+- Daily play rate display on platform detail pages
+- Auto-backfill historic data for newly added platforms
+
+### Fixed
+
+- Track stat badges showing cross-platform data on detail pages
+- Hardened URL handling and security for open-source release
+
 ## [0.1.0-beta.2] - 2026-03-13
 
 ### Fixed

@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.0-beta.2"
+version = "0.1.0-beta.3"
 description = "Cross-platform music streaming stats tracker"
 authors = ["Pete Miles"]
 license = "MIT"
