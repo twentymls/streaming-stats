@@ -7,14 +7,14 @@ A cross-platform desktop app that tracks streaming stats for music artists acros
 </p>
 
 <p align="center">
-  <a href="https://github.com/twentymls/streaming-stats/releases/download/v0.1.0-beta.3/Streaming.Stats_0.1.0-beta.3_aarch64.dmg">
+  <a href="https://github.com/twentymls/streaming-stats/releases/download/v0.1.0-beta.4/Streaming.Stats_0.1.0-beta.4_aarch64.dmg">
     <img src="https://img.shields.io/github/v/release/twentymls/streaming-stats?include_prereleases&label=Download%20for%20macOS&style=for-the-badge&color=1DB954" alt="Download Latest Release" />
   </a>
 </p>
 
 ## Download
 
-**[Download the latest release](https://github.com/twentymls/streaming-stats/releases/download/v0.1.0-beta.3/Streaming.Stats_0.1.0-beta.3_aarch64.dmg)**
+**[Download the latest release](https://github.com/twentymls/streaming-stats/releases/download/v0.1.0-beta.4/Streaming.Stats_0.1.0-beta.4_aarch64.dmg)**
 
 ### macOS
 
