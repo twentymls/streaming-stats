@@ -55,6 +55,58 @@ export function getHeroStat(
   return first ? { key: first[0], value: first[1] } : null;
 }
 
+/**
+ * Display order for stat badges — stats commonly populated first,
+ * chart/editorial stats (typically 0) last.
+ */
+export const STAT_DISPLAY_ORDER: string[] = [
+  // Core play counts
+  "streams",
+  "views",
+  "plays",
+  "creates",
+  "shazams",
+  // Followers & audience
+  "followers",
+  "monthly_listeners",
+  "monthly_audience",
+  "popularity",
+  // Playlists
+  "playlist_reach",
+  "playlist_reach_total",
+  "playlist_count",
+  "playlists_total",
+  // YouTube/TikTok content
+  "channel_views",
+  "short_views",
+  "videos",
+  "shorts",
+  "creator_reach",
+  // Engagement
+  "likes",
+  "video_comments",
+  "short_likes",
+  "short_comments",
+  "comments",
+  "shares",
+  "reposts",
+  "favorites",
+  "profile_likes",
+  "profile_videos",
+  "engagement_rate",
+  "video_engagement",
+  "short_engagement",
+  // Editorial & charts — typically 0 for most artists
+  "editorial_playlists",
+  "editorial_playlists_total",
+  "chart_entries",
+  "current_charts",
+  "charted_tracks",
+  "charted_tracks_total",
+  "charted_cities",
+  "charted_countries",
+];
+
 export const PLAY_COUNT_STAT: Record<string, string> = {
   spotify: "streams",
   apple_music: "streams",
