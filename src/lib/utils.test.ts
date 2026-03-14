@@ -2,6 +2,7 @@ import {
   formatNumber,
   getHeroStat,
   getPlayCountStat,
+  isSafeUrl,
   computeDailyDeltas,
   computeRollingAverageDeltas,
   computeYesterdayDelta,
@@ -26,6 +27,32 @@ describe("formatNumber", () => {
     expect(formatNumber(1_000_000)).toBe("1.0M");
     expect(formatNumber(1_500_000)).toBe("1.5M");
     expect(formatNumber(10_000_000)).toBe("10.0M");
+  });
+});
+
+describe("isSafeUrl", () => {
+  it("accepts https URLs", () => {
+    expect(isSafeUrl("https://example.com/path")).toBe(true);
+  });
+
+  it("accepts http URLs", () => {
+    expect(isSafeUrl("http://example.com")).toBe(true);
+  });
+
+  it("rejects javascript: URLs", () => {
+    expect(isSafeUrl("javascript:alert(1)")).toBe(false);
+  });
+
+  it("rejects data: URLs", () => {
+    expect(isSafeUrl("data:text/html,<script>alert(1)</script>")).toBe(false);
+  });
+
+  it("rejects invalid URLs", () => {
+    expect(isSafeUrl("not-a-url")).toBe(false);
+  });
+
+  it("rejects empty string", () => {
+    expect(isSafeUrl("")).toBe(false);
   });
 });
 

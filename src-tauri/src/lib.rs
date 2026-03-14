@@ -24,22 +24,24 @@ pub fn run() {
                 let open = MenuItem::with_id(app, "open", "Open Dashboard", true, None::<&str>)?;
                 let menu = Menu::with_items(app, &[&open, &quit])?;
 
-                TrayIconBuilder::new()
-                    .icon(app.default_window_icon().unwrap().clone())
-                    .menu(&menu)
-                    .on_menu_event(|app, event| match event.id.as_ref() {
-                        "open" => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
+                if let Some(icon) = app.default_window_icon() {
+                    TrayIconBuilder::new()
+                        .icon(icon.clone())
+                        .menu(&menu)
+                        .on_menu_event(|app, event| match event.id.as_ref() {
+                            "open" => {
+                                if let Some(window) = app.get_webview_window("main") {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                }
                             }
-                        }
-                        "quit" => {
-                            app.exit(0);
-                        }
-                        _ => {}
-                    })
-                    .build(app)?;
+                            "quit" => {
+                                app.exit(0);
+                            }
+                            _ => {}
+                        })
+                        .build(app)?;
+                }
             }
 
             // Initialize SQLite database pool
