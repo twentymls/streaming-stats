@@ -10,6 +10,7 @@ import {
   PLAY_COUNT_STAT,
   computeRollingAverageDeltas,
   computeYesterdayDelta,
+  STAT_DISPLAY_ORDER,
 } from "../lib/utils";
 
 interface PlatformDetailProps {
@@ -82,6 +83,13 @@ export function PlatformDetail({
     return deltas;
   }, [historicStats]);
 
+  // Compute daily play count rate (14-day rolling average, same as dashboard KPI)
+  const dailyRate = useMemo(() => {
+    const rollingAvg = computeRollingAverageDeltas(historicStats, playCountKey);
+    if (rollingAvg.length === 0) return null;
+    return rollingAvg[rollingAvg.length - 1].value;
+  }, [historicStats, playCountKey]);
+
   const preferredStats = TREND_STAT_PREFERENCE[source] ?? [];
   const PLAY_COUNT_FALLBACK = ["streams", "views", "creates", "shazams", "plays"];
   const hasData = (st: string) => filteredHistoric.some((s) => s.stat_type === st && s.value > 0);
@@ -113,12 +121,31 @@ export function PlatformDetail({
             )}
           </div>
           <div className="detail-hero-label">{DSP_STAT_LABELS[hero.key] ?? hero.key}</div>
+          {dailyRate != null && (
+            <div className="detail-hero-daily">
+              +{formatNumber(dailyRate)} {DSP_STAT_LABELS[playCountKey] ?? playCountKey}/day
+            </div>
+          )}
         </div>
       )}
 
       <div className="detail-stats-grid">
         {Object.entries(stats)
-          .filter(([k]) => k !== hero?.key)
+          .filter(([k, v]) => {
+            if (k === hero?.key) return false;
+            // Hide stats that are 0 when their "_total" counterpart has a value
+            const totalKey = k + "_total";
+            if (v === 0 && stats[totalKey] != null && stats[totalKey] > 0) return false;
+            return true;
+          })
+          .sort(([a], [b]) => {
+            const ai = STAT_DISPLAY_ORDER.indexOf(a);
+            const bi = STAT_DISPLAY_ORDER.indexOf(b);
+            return (
+              (ai === -1 ? STAT_DISPLAY_ORDER.length : ai) -
+              (bi === -1 ? STAT_DISPLAY_ORDER.length : bi)
+            );
+          })
           .map(([key, value]) => (
             <div key={key} className="detail-stat-card">
               <div className="detail-stat-value">
