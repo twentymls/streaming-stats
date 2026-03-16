@@ -43,6 +43,7 @@ vi.mock("../lib/database", () => ({
 // Mock songstats-api functions
 const mockFetchAllStats = vi.fn(async () => {});
 const mockFetchAndCacheTopContent = vi.fn(async () => {});
+const mockFetchAndCacheTrackStats = vi.fn(async () => {});
 vi.mock("../lib/songstats-api", () => ({
   get fetchAllStats() {
     return mockFetchAllStats;
@@ -52,7 +53,9 @@ vi.mock("../lib/songstats-api", () => ({
   get fetchAndCacheTopContent() {
     return mockFetchAndCacheTopContent;
   },
-  fetchAndCacheTrackStats: vi.fn(async () => {}),
+  get fetchAndCacheTrackStats() {
+    return mockFetchAndCacheTrackStats;
+  },
   TOP_TRACKS_SOURCES: ["spotify"],
   TOP_CURATORS_SOURCES: ["spotify"],
 }));
@@ -78,7 +81,6 @@ const defaultSettings = {
   spotify_artist_id: "abc123",
   artist_name: "Test Artist",
   enabled_sources: ["spotify"],
-  fetch_hour: 14,
 };
 
 describe("Dashboard", () => {
@@ -167,7 +169,7 @@ describe("Dashboard", () => {
     expect(screen.queryByText("Done for today")).not.toBeInTheDocument();
   });
 
-  it("shows 'Up to date' status when already fetched today", async () => {
+  it("shows 'Up to date' status with countdown when already fetched today", async () => {
     mockGetScheduledFetchInfo.mockResolvedValue({
       shouldFetchNow: false,
       shouldDeferToFetchHour: false,
@@ -178,11 +180,12 @@ describe("Dashboard", () => {
     render(<Dashboard onReset={() => {}} />);
 
     await waitFor(() => {
-      expect(screen.getByText("Up to date")).toBeInTheDocument();
+      expect(screen.getByText(/Up to date/)).toBeInTheDocument();
+      expect(screen.getByText(/until refresh/)).toBeInTheDocument();
     });
   });
 
-  it("shows 'Next update at' status when deferred", async () => {
+  it("shows countdown when deferred to fetch hour", async () => {
     // Defer for 2 hours
     mockGetScheduledFetchInfo.mockResolvedValue({
       shouldFetchNow: false,
@@ -194,7 +197,53 @@ describe("Dashboard", () => {
     render(<Dashboard onReset={() => {}} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Next update at/)).toBeInTheDocument();
+      expect(screen.getByText(/until refresh/)).toBeInTheDocument();
     });
+  });
+
+  it("records fetch even when secondary operations fail", async () => {
+    mockGetScheduledFetchInfo.mockResolvedValue({
+      shouldFetchNow: true,
+      shouldDeferToFetchHour: false,
+      msUntilFetchHour: 0,
+    });
+    mockLoadSettings.mockResolvedValue(defaultSettings);
+    mockFetchAllStats.mockResolvedValue(undefined);
+
+    // Secondary operation fails
+    mockFetchAndCacheTopContent.mockRejectedValue(new Error("rate limited"));
+
+    render(<Dashboard onReset={() => {}} />);
+
+    await waitFor(() => {
+      expect(mockRecordFetch).toHaveBeenCalled();
+    });
+
+    // Should still show "Up to date" despite secondary failure
+    await waitFor(() => {
+      expect(screen.getByText(/Up to date/)).toBeInTheDocument();
+    });
+  });
+
+  it("does not record fetch when fetchAllStats fails", async () => {
+    mockGetScheduledFetchInfo.mockResolvedValue({
+      shouldFetchNow: true,
+      shouldDeferToFetchHour: false,
+      msUntilFetchHour: 0,
+    });
+    mockLoadSettings.mockResolvedValue(defaultSettings);
+
+    // Core operation fails
+    mockFetchAllStats.mockRejectedValue(new Error("network error"));
+
+    render(<Dashboard onReset={() => {}} />);
+
+    // Wait for the fetch attempt to complete
+    await waitFor(() => {
+      expect(mockFetchAllStats).toHaveBeenCalled();
+    });
+
+    // recordFetch should NOT have been called
+    expect(mockRecordFetch).not.toHaveBeenCalled();
   });
 });

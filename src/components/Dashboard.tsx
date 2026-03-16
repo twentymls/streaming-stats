@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { PlatformCard } from "./PlatformCard";
 import { PlatformDetail } from "./PlatformDetail";
 import { KpiRow } from "./KpiRow";
@@ -27,7 +27,7 @@ import {
 } from "../lib/songstats-api";
 import { loadSettings, recordFetch, getScheduledFetchInfo } from "../lib/settings";
 import type { DailyStat, AppSettings, TopTrack, TopCurator } from "../lib/types";
-import { DSP_NAMES } from "../lib/constants";
+import { DSP_NAMES, FETCH_HOUR } from "../lib/constants";
 import {
   computeAllPlatformDeltas,
   computeRollingAverageDeltas,
@@ -59,6 +59,8 @@ export function Dashboard({ onReset }: DashboardProps) {
   const [trackStats, setTrackStats] = useState<Map<string, Map<string, Record<string, number>>>>(
     new Map()
   );
+  const [tick, setTick] = useState(0);
+  const fetchInProgress = useRef(false);
 
   const loadData = useCallback(async () => {
     const s = await loadSettings();
@@ -129,6 +131,8 @@ export function Dashboard({ onReset }: DashboardProps) {
   const performDailyFetch = useCallback(
     async (hasData: boolean) => {
       if (!settings) return;
+      if (fetchInProgress.current) return;
+      fetchInProgress.current = true;
       setInitialLoading(true);
       setLoading(true);
       try {
@@ -142,9 +146,13 @@ export function Dashboard({ onReset }: DashboardProps) {
           );
         } else {
           // Backfill historic data for sources with < 3 days of data (newly added)
+          // Query DB directly to avoid depending on historicStats state
+          const endDate = format(new Date(), "yyyy-MM-dd");
+          const startDate = format(subDays(new Date(), 90), "yyyy-MM-dd");
+          const currentHistoric = await getStatsRange(startDate, endDate);
           const sparseSources = settings.enabled_sources.filter((s) => {
             const dates = new Set(
-              historicStats.filter((st) => st.source === s).map((st) => st.date)
+              currentHistoric.filter((st) => st.source === s).map((st) => st.date)
             );
             return dates.size < 3;
           });
@@ -153,42 +161,52 @@ export function Dashboard({ onReset }: DashboardProps) {
           }
         }
         await fetchAllStats(settings.api_key, settings.spotify_artist_id, settings.enabled_sources);
-        await fetchAndCacheTopContent(
-          settings.api_key,
-          settings.spotify_artist_id,
-          TOP_TRACKS_SOURCES,
-          TOP_CURATORS_SOURCES
-        );
 
-        // Fetch per-track stats weekly
-        const lastTrackStatsFetch = await getTrackStatsLastFetch("tiktok");
-        const daysSince = lastTrackStatsFetch
-          ? (Date.now() - new Date(lastTrackStatsFetch).getTime()) / 86400000
-          : Infinity;
-        if (daysSince >= 7) {
-          const latestTracks = await getAllCachedTopTracks();
-          const allTracks = [
-            ...(latestTracks.get("tiktok") ?? []),
-            ...(latestTracks.get("youtube") ?? []),
-          ];
-          const tracksWithIds = allTracks.filter((t) => t.songstats_track_id);
-          if (tracksWithIds.length > 0) {
-            await fetchAndCacheTrackStats(settings.api_key, tracksWithIds, ["tiktok", "youtube"]);
-          }
-        }
-
+        // Record fetch immediately after core stats succeed
+        // so partial failures in secondary operations don't cause re-fetches
         await recordFetch();
         setFetchedToday(true);
         setNextRefetchTime(null);
+
+        // Secondary operations — failures here won't trigger re-fetch on next open
+        try {
+          await fetchAndCacheTopContent(
+            settings.api_key,
+            settings.spotify_artist_id,
+            TOP_TRACKS_SOURCES,
+            TOP_CURATORS_SOURCES
+          );
+
+          // Fetch per-track stats weekly
+          const lastTrackStatsFetch = await getTrackStatsLastFetch("tiktok");
+          const daysSince = lastTrackStatsFetch
+            ? (Date.now() - new Date(lastTrackStatsFetch).getTime()) / 86400000
+            : Infinity;
+          if (daysSince >= 7) {
+            const latestTracks = await getAllCachedTopTracks();
+            const allTracks = [
+              ...(latestTracks.get("tiktok") ?? []),
+              ...(latestTracks.get("youtube") ?? []),
+            ];
+            const tracksWithIds = allTracks.filter((t) => t.songstats_track_id);
+            if (tracksWithIds.length > 0) {
+              await fetchAndCacheTrackStats(settings.api_key, tracksWithIds, ["tiktok", "youtube"]);
+            }
+          }
+        } catch (err) {
+          console.error("Secondary fetch operations failed:", err);
+        }
+
         await loadData();
       } catch (err) {
         console.error("Auto-fetch failed:", err);
       } finally {
+        fetchInProgress.current = false;
         setLoading(false);
         setInitialLoading(false);
       }
     },
-    [settings, loadData, historicStats]
+    [settings, loadData]
   );
 
   // Scheduled auto-fetch: determines whether to fetch now, defer, or skip
@@ -285,6 +303,41 @@ export function Dashboard({ onReset }: DashboardProps) {
     return result;
   }, [dashboardHistoric]);
 
+  // Tick every minute to keep the countdown fresh
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const countdownText = useMemo(() => {
+    if (loading) return null;
+
+    let targetTime: Date | null = null;
+
+    if (nextRefetchTime) {
+      targetTime = nextRefetchTime;
+    } else if (fetchedToday) {
+      // Next refresh is tomorrow at FETCH_HOUR (2 PM)
+      targetTime = new Date();
+      targetTime.setDate(targetTime.getDate() + 1);
+      targetTime.setHours(FETCH_HOUR, 0, 0, 0);
+    }
+
+    if (!targetTime) return null;
+
+    const msUntil = targetTime.getTime() - Date.now();
+    if (msUntil <= 0) return null;
+
+    const hours = Math.floor(msUntil / 3_600_000);
+    const minutes = Math.floor((msUntil % 3_600_000) / 60_000);
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m until refresh`;
+    }
+    return `${minutes}m until refresh`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- tick forces periodic recomputation
+  }, [loading, nextRefetchTime, fetchedToday, tick]);
+
   if (showSettings) {
     return (
       <Settings
@@ -334,10 +387,12 @@ export function Dashboard({ onReset }: DashboardProps) {
             <span className="fetch-status">
               {loading
                 ? "Updating..."
-                : nextRefetchTime
-                  ? `Next update at ${format(nextRefetchTime, "h:mm a")}`
-                  : fetchedToday
-                    ? "Up to date"
+                : fetchedToday
+                  ? countdownText
+                    ? `Up to date · ${countdownText}`
+                    : "Up to date"
+                  : nextRefetchTime
+                    ? (countdownText ?? `Next update at ${format(nextRefetchTime, "h:mm a")}`)
                     : ""}
             </span>
             <button onClick={() => setShowSettings(true)} className="btn">

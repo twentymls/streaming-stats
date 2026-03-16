@@ -3,7 +3,6 @@ export interface AppSettings {
   spotify_artist_id: string;
   artist_name?: string;
   enabled_sources: string[];
-  fetch_hour: number;
 }
 
 export interface DailyStat {

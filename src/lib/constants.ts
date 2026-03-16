@@ -104,5 +104,8 @@ export const CHART_THEME = {
   tooltipText: "#eaedf3",
 } as const;
 
+/** Daily auto-fetch always runs at 2 PM local time */
+export const FETCH_HOUR = 14;
+
 export const RAPIDAPI_HOST = "songstats.p.rapidapi.com";
 export const RAPIDAPI_BASE_URL = `https://${RAPIDAPI_HOST}`;

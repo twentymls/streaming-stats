@@ -3,7 +3,6 @@ import { loadSettings, saveSettings } from "../lib/settings";
 import { getMonthlyApiCount } from "../lib/database";
 import { AppSettings } from "../lib/types";
 import { DSP_NAMES, DEFAULT_SOURCES } from "../lib/constants";
-import { format, setHours, startOfDay } from "date-fns";
 
 interface SettingsProps {
   onBack: () => void;
@@ -84,22 +83,6 @@ export function Settings({ onBack, onReset }: SettingsProps) {
             </label>
           ))}
         </div>
-      </div>
-
-      <div className="settings-section">
-        <h3>Daily refresh time</h3>
-        <p className="settings-hint">Stats refresh automatically at this time each day</p>
-        <select
-          value={settings.fetch_hour}
-          onChange={(e) => setSettings({ ...settings, fetch_hour: Number(e.target.value) })}
-          className="setup-input"
-        >
-          {Array.from({ length: 24 }, (_, h) => (
-            <option key={h} value={h}>
-              {format(setHours(startOfDay(new Date()), h), "h:mm a")}
-            </option>
-          ))}
-        </select>
       </div>
 
       <div className="settings-section">

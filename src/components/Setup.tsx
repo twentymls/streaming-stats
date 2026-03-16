@@ -63,7 +63,6 @@ export function Setup({ onComplete }: SetupProps) {
       spotify_artist_id: spotifyId.trim(),
       artist_name: artistName,
       enabled_sources: DEFAULT_SOURCES,
-      fetch_hour: 14,
     };
     await saveSettings(settings);
     setLoading(false);

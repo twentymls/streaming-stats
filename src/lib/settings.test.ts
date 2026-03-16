@@ -35,7 +35,6 @@ describe("settings", () => {
       expect(result!.spotify_artist_id).toBe("artist-id");
       expect(result!.artist_name).toBe("");
       expect(result!.enabled_sources).toHaveLength(9);
-      expect(result!.fetch_hour).toBe(14);
     });
   });
 
@@ -49,14 +48,12 @@ describe("settings", () => {
         spotify_artist_id: "artist",
         artist_name: "Test Artist",
         enabled_sources: ["spotify"],
-        fetch_hour: 8,
       });
 
       expect(mockStore.set).toHaveBeenCalledWith("api_key", "key");
       expect(mockStore.set).toHaveBeenCalledWith("spotify_artist_id", "artist");
       expect(mockStore.set).toHaveBeenCalledWith("artist_name", "Test Artist");
       expect(mockStore.set).toHaveBeenCalledWith("enabled_sources", ["spotify"]);
-      expect(mockStore.set).toHaveBeenCalledWith("fetch_hour", 8);
       expect(mockStore.save).toHaveBeenCalled();
     });
   });
@@ -147,36 +144,20 @@ describe("settings", () => {
       expect(result.shouldDeferToFetchHour).toBe(false);
     });
 
-    it("returns shouldFetchNow when current hour >= fetch_hour", async () => {
+    it("returns shouldFetchNow when current hour >= FETCH_HOUR (14)", async () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       store.set("last_fetch_iso", yesterday.toISOString());
       store.set("fetch_count_today", 1);
 
-      // Set fetch_hour to 0 so current hour is always >= fetch_hour
-      store.set("fetch_hour", 0);
-
       const { getScheduledFetchInfo } = await import("./settings");
       const result = await getScheduledFetchInfo(true);
-      expect(result.shouldFetchNow).toBe(true);
-    });
+      const currentHour = new Date().getHours();
 
-    it("returns shouldDeferToFetchHour when before fetch_hour", async () => {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      store.set("last_fetch_iso", yesterday.toISOString());
-      store.set("fetch_count_today", 1);
-
-      // Set fetch_hour to 23 so current hour is almost certainly < fetch_hour
-      store.set("fetch_hour", 23);
-
-      const { getScheduledFetchInfo } = await import("./settings");
-      const result = await getScheduledFetchInfo(true);
-
-      // This test only works if run before 11 PM
-      if (new Date().getHours() < 23) {
+      if (currentHour >= 14) {
+        expect(result.shouldFetchNow).toBe(true);
+      } else {
         expect(result.shouldDeferToFetchHour).toBe(true);
-        expect(result.shouldFetchNow).toBe(false);
         expect(result.msUntilFetchHour).toBeGreaterThan(0);
       }
     });
