@@ -276,32 +276,31 @@ export function Dashboard({ onReset }: DashboardProps) {
 
   const smoothed = true;
 
-  // Must be above early returns to keep hook order stable
-  const dashboardHistoric = useMemo(() => {
-    const cutoff = format(subDays(new Date(), period), "yyyy-MM-dd");
-    return historicStats.filter((s) => s.date >= cutoff);
-  }, [historicStats, period]);
+  // Cutoff date for the selected display period
+  const displayAfter = useMemo(() => format(subDays(new Date(), period), "yyyy-MM-dd"), [period]);
 
+  // Compute rolling averages on the FULL 90-day dataset, then trim to display period.
+  // This prevents inflated values at the start when the rolling window lacks lookback data.
   const chartData = useMemo(
-    () => computeAllPlatformDeltas(dashboardHistoric, smoothed),
-    [dashboardHistoric, smoothed]
+    () => computeAllPlatformDeltas(historicStats, smoothed, displayAfter),
+    [historicStats, smoothed, displayAfter]
   );
 
   // Rolling-average daily values for Spotify/YouTube KPI cards
-  // Uses the same calculation as the platform detail pages (14-day window)
+  // Uses the full dataset (only needs the last value, so no displayAfter needed)
   const kpiPlatformDeltas = useMemo(() => {
     const result: Record<string, number> = {};
     for (const source of ["spotify", "youtube"]) {
       const statType = PLAY_COUNT_STAT[source];
       if (!statType) continue;
-      const sourceStats = dashboardHistoric.filter((s) => s.source === source);
+      const sourceStats = historicStats.filter((s) => s.source === source);
       const rollingAvg = computeRollingAverageDeltas(sourceStats, statType);
       if (rollingAvg.length > 0) {
         result[source] = rollingAvg[rollingAvg.length - 1].value;
       }
     }
     return result;
-  }, [dashboardHistoric]);
+  }, [historicStats]);
 
   // Tick every minute to keep the countdown fresh
   useEffect(() => {

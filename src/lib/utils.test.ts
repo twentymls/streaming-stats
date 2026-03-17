@@ -433,4 +433,50 @@ describe("computeAllPlatformDeltas", () => {
     expect(result.dailyPoints).toHaveLength(0);
     expect(result.platformSummaries).toHaveLength(0);
   });
+
+  it("filters dailyPoints by displayAfter", () => {
+    const stats = [
+      { date: "2025-01-01", source: "spotify", stat_type: "streams", value: 1000 },
+      { date: "2025-01-02", source: "spotify", stat_type: "streams", value: 1200 },
+      { date: "2025-01-03", source: "spotify", stat_type: "streams", value: 1500 },
+      { date: "2025-01-04", source: "spotify", stat_type: "streams", value: 1900 },
+    ];
+    const result = computeAllPlatformDeltas(stats, false, "2025-01-03");
+    // Only dates >= 2025-01-03 should be in output
+    expect(result.dailyPoints).toHaveLength(2);
+    expect(result.dailyPoints[0].date).toBe("2025-01-03");
+    expect(result.dailyPoints[1].date).toBe("2025-01-04");
+  });
+
+  it("computes KPIs from visible period when displayAfter is set", () => {
+    const stats = [
+      { date: "2025-01-01", source: "spotify", stat_type: "streams", value: 1000 },
+      { date: "2025-01-02", source: "spotify", stat_type: "streams", value: 1200 },
+      { date: "2025-01-03", source: "spotify", stat_type: "streams", value: 1500 },
+      { date: "2025-01-04", source: "spotify", stat_type: "streams", value: 1900 },
+    ];
+    const full = computeAllPlatformDeltas(stats, false);
+    const trimmed = computeAllPlatformDeltas(stats, false, "2025-01-03");
+    // Best day should reflect visible period only
+    expect(trimmed.aggregateStats.bestDay.date).toBe("2025-01-04");
+    expect(trimmed.aggregateStats.bestDay.total).toBe(400);
+    // Full result has the same best day but different avg
+    expect(full.aggregateStats.avgDailyTotal).not.toBe(trimmed.aggregateStats.avgDailyTotal);
+  });
+
+  it("does not inflate rolling averages at the start of the display period", () => {
+    // Simulate 20 days of steady 1000/day growth, then display only last 5 days
+    const stats = Array.from({ length: 20 }, (_, i) => ({
+      date: `2025-01-${String(i + 1).padStart(2, "0")}`,
+      source: "spotify",
+      stat_type: "streams",
+      value: 100000 + i * 1000,
+    }));
+    const result = computeAllPlatformDeltas(stats, true, "2025-01-16");
+    // All visible points should be ~1000 (the true daily rate)
+    // Without the fix, the first point would be inflated because it only had 1 day of lookback
+    for (const dp of result.dailyPoints) {
+      expect(dp.total).toBe(1000);
+    }
+  });
 });

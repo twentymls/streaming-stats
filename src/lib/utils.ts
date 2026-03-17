@@ -229,12 +229,14 @@ export function getPlayCountStat(
  */
 export function computeAllPlatformDeltas(
   stats: DailyStat[],
-  smoothed: boolean = false
+  smoothed: boolean = false,
+  displayAfter?: string
 ): DashboardChartData {
   // Group stats by source
   const sources = [...new Set(stats.map((s) => s.source))];
 
-  // Compute deltas per platform using their play-count stat
+  // Compute deltas per platform using their play-count stat on the FULL dataset
+  // so rolling averages have full lookback even at the start of the display period
   const platformDeltas = new Map<string, DailyStat[]>();
   for (const source of sources) {
     const statType = PLAY_COUNT_STAT[source];
@@ -258,7 +260,7 @@ export function computeAllPlatformDeltas(
   const sortedDates = [...allDates].sort();
 
   // Build daily points
-  const dailyPoints = sortedDates.map((date) => {
+  const allDailyPoints = sortedDates.map((date) => {
     const deltas: Record<string, number> = {};
     let total = 0;
     for (const [source, sourceDeltaList] of platformDeltas) {
@@ -270,14 +272,19 @@ export function computeAllPlatformDeltas(
     return { date, deltas, total };
   });
 
-  // Platform summaries
+  // Trim to display period after computing rolling averages on the full dataset
+  const dailyPoints = displayAfter
+    ? allDailyPoints.filter((dp) => dp.date >= displayAfter)
+    : allDailyPoints;
+
+  // Platform summaries — computed from visible points so KPIs reflect the selected period
   const platformTotals = new Map<string, number>();
-  for (const [source, deltas] of platformDeltas) {
-    const total = deltas.reduce((sum, d) => sum + d.value, 0);
+  for (const [source] of platformDeltas) {
+    const total = dailyPoints.reduce((sum, dp) => sum + (dp.deltas[source] ?? 0), 0);
     platformTotals.set(source, total);
   }
   const grandTotal = [...platformTotals.values()].reduce((a, b) => a + b, 0);
-  const numDays = sortedDates.length || 1;
+  const numDays = dailyPoints.length || 1;
 
   const platformSummaries: PlatformSummary[] = [...platformTotals.entries()]
     .map(([source, totalGrowth]) => ({

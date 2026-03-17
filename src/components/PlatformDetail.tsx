@@ -25,11 +25,20 @@ interface PlatformDetailProps {
   onBack: () => void;
 }
 
-function DailyDeltasChart({ stats, playCountKey }: { stats: DailyStat[]; playCountKey: string }) {
-  const chartData = useMemo(
-    () => computeRollingAverageDeltas(stats, playCountKey),
-    [stats, playCountKey]
-  );
+function DailyDeltasChart({
+  stats,
+  playCountKey,
+  displayAfter,
+}: {
+  stats: DailyStat[];
+  playCountKey: string;
+  displayAfter?: string;
+}) {
+  const chartData = useMemo(() => {
+    // Compute rolling average on the full dataset, then trim to display period
+    const allDeltas = computeRollingAverageDeltas(stats, playCountKey);
+    return displayAfter ? allDeltas.filter((d) => d.date >= displayAfter) : allDeltas;
+  }, [stats, playCountKey, displayAfter]);
 
   if (chartData.length === 0) return null;
 
@@ -277,7 +286,11 @@ export function PlatformDetail({
             statType={trendStatType}
           />
           {playCountKey !== trendStatType && source !== "instagram" && (
-            <DailyDeltasChart stats={filteredHistoric} playCountKey={playCountKey} />
+            <DailyDeltasChart
+              stats={historicStats}
+              playCountKey={playCountKey}
+              displayAfter={format(subDays(new Date(), period), "yyyy-MM-dd")}
+            />
           )}
         </>
       )}
