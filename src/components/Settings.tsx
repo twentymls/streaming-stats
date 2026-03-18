@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import { loadSettings, saveSettings } from "../lib/settings";
 import { getMonthlyApiCount } from "../lib/database";
+import { supabase, getSupabaseUser } from "../lib/supabase";
+import { syncAllHistory } from "../lib/sync";
 import { AppSettings } from "../lib/types";
 import { DSP_NAMES, DEFAULT_SOURCES } from "../lib/constants";
+import type { User } from "@supabase/supabase-js";
 
 interface SettingsProps {
   onBack: () => void;
@@ -13,6 +16,12 @@ export function Settings({ onBack, onReset }: SettingsProps) {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [apiCount, setApiCount] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [cloudUser, setCloudUser] = useState<User | null>(null);
+  const [cloudEmail, setCloudEmail] = useState("");
+  const [cloudPassword, setCloudPassword] = useState("");
+  const [cloudError, setCloudError] = useState("");
+  const [cloudSyncing, setCloudSyncing] = useState(false);
+  const [cloudSynced, setCloudSynced] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -20,6 +29,8 @@ export function Settings({ onBack, onReset }: SettingsProps) {
       setSettings(s);
       const count = await getMonthlyApiCount();
       setApiCount(count);
+      const user = await getSupabaseUser();
+      if (user) setCloudUser(user);
     })();
   }, []);
 
@@ -28,6 +39,68 @@ export function Settings({ onBack, onReset }: SettingsProps) {
     await saveSettings(settings);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleCloudSignIn = async () => {
+    if (!supabase) {
+      setCloudError("Cloud sync not configured");
+      return;
+    }
+    setCloudError("");
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: cloudEmail,
+      password: cloudPassword,
+    });
+    if (error) {
+      setCloudError(error.message);
+    } else if (data.user) {
+      setCloudUser(data.user);
+      setCloudEmail("");
+      setCloudPassword("");
+    }
+  };
+
+  const handleCloudSignUp = async () => {
+    if (!supabase) {
+      setCloudError("Cloud sync not configured");
+      return;
+    }
+    setCloudError("");
+    const { data, error } = await supabase.auth.signUp({
+      email: cloudEmail,
+      password: cloudPassword,
+    });
+    if (error) {
+      setCloudError(error.message);
+    } else if (data.user) {
+      setCloudUser(data.user);
+      setCloudEmail("");
+      setCloudPassword("");
+    }
+  };
+
+  const handleCloudSignOut = async () => {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+    setCloudUser(null);
+  };
+
+  const handleSyncAll = async () => {
+    setCloudSyncing(true);
+    setCloudError("");
+    try {
+      const result = await syncAllHistory();
+      if (result) {
+        setCloudError(result);
+      } else {
+        setCloudSynced(true);
+        setTimeout(() => setCloudSynced(false), 3000);
+      }
+    } catch (err) {
+      setCloudError(String(err));
+    } finally {
+      setCloudSyncing(false);
+    }
   };
 
   const toggleSource = (source: string) => {
@@ -97,6 +170,51 @@ export function Settings({ onBack, onReset }: SettingsProps) {
           </span>
         </div>
       </div>
+
+      {supabase && (
+        <div className="settings-section">
+          <h3>Cloud Sync</h3>
+          {cloudError && <p className="cloud-error">{cloudError}</p>}
+          {cloudUser ? (
+            <div className="cloud-sync-status">
+              <span className="cloud-sync-email">{cloudUser.email}</span>
+              <div className="cloud-sync-actions">
+                <button onClick={handleSyncAll} className="btn btn-sm" disabled={cloudSyncing}>
+                  {cloudSyncing ? "Syncing..." : cloudSynced ? "Synced!" : "Sync all history"}
+                </button>
+                <button onClick={handleCloudSignOut} className="btn btn-sm">
+                  Sign out
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="cloud-sync-auth">
+              <input
+                type="email"
+                placeholder="Email"
+                value={cloudEmail}
+                onChange={(e) => setCloudEmail(e.target.value)}
+                className="setup-input"
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={cloudPassword}
+                onChange={(e) => setCloudPassword(e.target.value)}
+                className="setup-input"
+              />
+              <div className="cloud-sync-actions">
+                <button onClick={handleCloudSignIn} className="btn btn-sm">
+                  Sign in
+                </button>
+                <button onClick={handleCloudSignUp} className="btn btn-sm">
+                  Sign up
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="settings-actions">
         <button onClick={handleSave} className="btn btn-primary">

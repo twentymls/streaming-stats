@@ -33,13 +33,15 @@ import {
   computeRollingAverageDeltas,
   PLAY_COUNT_STAT,
 } from "../lib/utils";
+import { syncToSupabase } from "../lib/sync";
 import { format, subDays } from "date-fns";
 
 interface DashboardProps {
   onReset: () => void;
+  readOnly?: boolean;
 }
 
-export function Dashboard({ onReset }: DashboardProps) {
+export function Dashboard({ onReset, readOnly }: DashboardProps) {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [latestStats, setLatestStats] = useState<Map<string, Record<string, number>>>(new Map());
   const [historicStats, setHistoricStats] = useState<DailyStat[]>([]);
@@ -165,6 +167,7 @@ export function Dashboard({ onReset }: DashboardProps) {
         // Record fetch immediately after core stats succeed
         // so partial failures in secondary operations don't cause re-fetches
         await recordFetch();
+        syncToSupabase().catch((err) => console.warn("Cloud sync failed:", err));
         setFetchedToday(true);
         setNextRefetchTime(null);
 
@@ -211,7 +214,7 @@ export function Dashboard({ onReset }: DashboardProps) {
 
   // Scheduled auto-fetch: determines whether to fetch now, defer, or skip
   useEffect(() => {
-    if (!settings) return;
+    if (!settings || readOnly) return;
     let cancelled = false;
     let fetchTimer: ReturnType<typeof setTimeout> | undefined;
     let midnightTimer: ReturnType<typeof setTimeout> | undefined;
@@ -382,21 +385,26 @@ export function Dashboard({ onReset }: DashboardProps) {
             {lastUpdate && <span className="last-update">Last update: {lastUpdate}</span>}
           </div>
           <div className="header-right">
-            <div className="api-badge">API: {apiCount}/500</div>
-            <span className="fetch-status">
-              {loading
-                ? "Updating..."
-                : fetchedToday
-                  ? countdownText
-                    ? `Up to date · ${countdownText}`
-                    : "Up to date"
-                  : nextRefetchTime
-                    ? (countdownText ?? `Next update at ${format(nextRefetchTime, "h:mm a")}`)
-                    : ""}
-            </span>
-            <button onClick={() => setShowSettings(true)} className="btn">
-              Settings
-            </button>
+            {!readOnly && <div className="api-badge">API: {apiCount}/500</div>}
+            {!readOnly && (
+              <span className="fetch-status">
+                {loading
+                  ? "Updating..."
+                  : fetchedToday
+                    ? countdownText
+                      ? `Up to date · ${countdownText}`
+                      : "Up to date"
+                    : nextRefetchTime
+                      ? (countdownText ?? `Next update at ${format(nextRefetchTime, "h:mm a")}`)
+                      : ""}
+              </span>
+            )}
+            {readOnly && lastUpdate && <span className="fetch-status">Synced: {lastUpdate}</span>}
+            {!readOnly && (
+              <button onClick={() => setShowSettings(true)} className="btn">
+                Settings
+              </button>
+            )}
           </div>
         </header>
 

@@ -23,40 +23,33 @@ cd src-tauri && cargo test
 
 ### Mock configuration (`src/test/setup.ts`)
 
-Tauri plugins don't work outside the Tauri runtime. The test setup mocks all four plugins:
+Tauri plugins and cloud dependencies don't work outside the Tauri runtime. The test setup mocks them:
 
 ```typescript
 // @tauri-apps/plugin-store -> in-memory Map
-vi.mock("@tauri-apps/plugin-store", () => {
-  const store = new Map();
-  return {
-    load: vi.fn(async () => ({
-      get: vi.fn(async (key) => store.get(key)),
-      set: vi.fn(async (key, value) => store.set(key, value)),
-      save: vi.fn(async () => {}),
-    })),
-  };
-});
+vi.mock("@tauri-apps/plugin-store", () => { /* ... */ });
 
 // @tauri-apps/api/core -> invoke() returns empty array
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(async () => []),
-}));
+vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn(async () => []) }));
 
 // @tauri-apps/plugin-http -> fetch() returns 200 OK
-vi.mock("@tauri-apps/plugin-http", () => ({
-  fetch: vi.fn(async () => ({
-    ok: true, status: 200,
-    json: async () => ({}),
-    text: async () => "",
-  })),
-}));
+vi.mock("@tauri-apps/plugin-http", () => ({ fetch: vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}), text: async () => "" })) }));
 
 // @tauri-apps/plugin-shell -> open() is no-op
-vi.mock("@tauri-apps/plugin-shell", () => ({
-  open: vi.fn(async () => {}),
+vi.mock("@tauri-apps/plugin-shell", () => ({ open: vi.fn(async () => {}) }));
+
+// @supabase/supabase-js -> null client
+vi.mock("@supabase/supabase-js", () => ({ createClient: vi.fn(() => null) }));
+
+// ../lib/sync -> no-op sync functions (prevents real Supabase calls)
+vi.mock("../lib/sync", () => ({
+  syncToSupabase: vi.fn(async () => {}),
+  syncAllHistory: vi.fn(async () => null),
+  syncSettings: vi.fn(async () => {}),
 }));
 ```
+
+Tests that need to test the real sync module (e.g., `sync.test.ts`) use `vi.unmock()` to opt out of the global mock.
 
 ### Vitest configuration (`vitest.config.ts`)
 
@@ -76,6 +69,10 @@ vi.mock("@tauri-apps/plugin-shell", () => ({
 | `src/lib/database.test.ts` | 19 | All `invoke()` wrapper functions called with correct command names and argument shapes. |
 | `src/lib/settings.test.ts` | 11 | `loadSettings`, `saveSettings`, `hasApiKey`, `getAutoFetchState` (date reset logic), `recordFetch` (counter increment). |
 | `src/lib/songstats-api.test.ts` | 17 | `mapStatFields` (all 60+ field mappings), `testApiKey` (valid/invalid/rate-limited), retry on 429. |
+| `src/lib/songstats-fields.test.ts` | 8 | `FIELD_MAP` completeness, `mapStatFields` normalization, max-value dedup, empty input. |
+| `src/lib/sync.test.ts` | 4 | `syncToSupabase` daily push, `syncAllHistory` bulk sync with batching, error collection, `syncSettings` upsert. |
+| `src/lib/database-web.test.ts` | 7 | All Supabase-backed database functions: query construction, user_id filtering, write no-ops. |
+| `src/lib/settings-web.test.ts` | 6 | `loadSettings` from Supabase, `hasApiKey` session check, `getScheduledFetchInfo` always-no-fetch, write stubs. |
 
 ### Component tests
 
@@ -87,6 +84,8 @@ vi.mock("@tauri-apps/plugin-shell", () => ({
 | `src/components/KpiRow.test.tsx` | 10 | All 6 KPI cards render, positive/negative styling, platform deltas (Spotify/YouTube), zero values, missing deltas. |
 | `src/components/DailyGrowthChart.test.tsx` | 3 | Chart renders with data, empty state, dataset structure passed to Chart.js. |
 | `src/components/GrowthShare.test.tsx` | 6 | Platform rows render, percentages, daily averages, click handler, empty state, heading. |
+| `src/components/LoginPage.test.tsx` | 3 | Renders login form, label-input association, sign in/sign up toggle. |
+| `src/PwaApp.test.tsx` | 2 | Renders login when no session, renders dashboard when authenticated. |
 
 ### Component test patterns
 

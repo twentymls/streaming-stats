@@ -11,6 +11,9 @@
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
+    "dev:pwa": "vite --config vite.config.pwa.ts --port 5174",
+    "build:pwa": "vite build --config vite.config.pwa.ts",
+    "preview:pwa": "vite preview --config vite.config.pwa.ts --port 5174",
     "tauri": "tauri",
     "ios:dev": "tauri ios dev",
     "ios:build": "tauri ios build",
@@ -37,6 +40,7 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.99.2",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/plugin-http": "^2.5.7",
     "@tauri-apps/plugin-shell": "^2.3.5",

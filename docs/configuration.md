@@ -23,12 +23,13 @@ Core app configuration for window, security, and build settings.
 
 ```
 default-src 'self';
-connect-src 'self' https://songstats.p.rapidapi.com;
+connect-src 'self' https://songstats.p.rapidapi.com https://*.supabase.co wss://*.supabase.co;
 style-src 'self' 'unsafe-inline';
 img-src 'self' https: data:
 ```
 
-- Only `songstats.p.rapidapi.com` is allowed for API calls.
+- `songstats.p.rapidapi.com` for Songstats API calls.
+- `*.supabase.co` for cloud sync (HTTP + WebSocket).
 - Images from any HTTPS source (for track artwork).
 - Inline styles allowed (CSS-in-JS needs this).
 - No `eval()` or external scripts.
@@ -164,6 +165,9 @@ Run with: `npm run format` or `npm run format:check`
 | Script | Command | Purpose |
 |--------|---------|---------|
 | `dev` | `vite` | Vite dev server only (no Tauri backend) |
+| `dev:pwa` | `vite --config vite.config.pwa.ts --port 5174` | PWA dev server (reads from Supabase) |
+| `build:pwa` | `vite build --config vite.config.pwa.ts` | PWA production build (outputs to `dist-pwa/`) |
+| `preview:pwa` | `vite preview --config vite.config.pwa.ts --port 5174` | Preview PWA build locally |
 | `ios:dev` | `tauri ios dev` | Run on iOS Simulator |
 | `ios:build` | `tauri ios build` | Production iOS build |
 | `android:dev` | `tauri android dev` | Run on Android Emulator |
@@ -199,9 +203,41 @@ cd src-tauri && cargo test
 
 ---
 
+## PWA Vite Configuration (`vite.config.pwa.ts`)
+
+Separate Vite config for the PWA build. Uses `resolve.alias` to swap Tauri-specific modules for web implementations:
+
+```typescript
+resolve: {
+  alias: {
+    '../lib/database': './src/lib/database-web.ts',
+    '../lib/settings': './src/lib/settings-web.ts',
+    '@tauri-apps/api/core': './src/lib/tauri-stubs.ts',
+    '@tauri-apps/plugin-http': './src/lib/tauri-stubs.ts',
+    '@tauri-apps/plugin-shell': './src/lib/tauri-stubs.ts',
+    '@tauri-apps/plugin-store': './src/lib/tauri-stubs.ts',
+  },
+}
+```
+
+- Builds from `index-pwa.html` (separate entry point from `index.html`).
+- Outputs to `dist-pwa/` (separate from `dist/`).
+- Runs on port 5174 to avoid conflicts with the desktop dev server.
+
+---
+
 ## Environment & Secrets
 
 - `.env` files are gitignored. Never commit API keys.
 - API keys are stored encrypted via `@tauri-apps/plugin-store`, not in environment variables.
 - `import.meta.env` for Vite environment variables (not `process.env`).
 - The only env prefixes allowed are `VITE_` and `TAURI_`.
+
+### Supabase environment variables (optional)
+
+| Variable | Purpose |
+|----------|---------|
+| `VITE_SUPABASE_URL` | Supabase project URL (e.g., `https://xyz.supabase.co`) |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous/public key (safe to embed — RLS protects data) |
+
+If these are not set, the Supabase client returns `null` and all cloud sync features are silently disabled.

@@ -196,3 +196,52 @@ The delta is computed in Rust by matching track titles between the two dates and
 3. **Daily top content**: `fetchAndCacheTopContent()` caches top tracks (6 platforms) and curators (TikTok only).
 4. **Weekly track stats**: `fetchAndCacheTrackStats()` fetches per-track data for TikTok and YouTube top tracks.
 5. **Reads**: Dashboard and detail views query cached data from SQLite. No API calls are made for rendering.
+6. **Cloud sync** (optional): After each daily fetch, `syncToSupabase()` pushes today's data to Supabase. `syncAllHistory()` bulk-syncs all local data (triggered manually from Settings).
+
+---
+
+## Supabase Schema (Cloud)
+
+The Supabase Postgres schema mirrors the local SQLite schema but adds `user_id` for multi-tenancy and Row Level Security. The migration is at `supabase/migrations/001_initial_schema.sql`.
+
+### Tables
+
+All tables include a `user_id UUID` column referencing `auth.users(id)`. Each table has RLS enabled with a policy ensuring users can only access their own data.
+
+| Table | Unique constraint | Notes |
+|-------|------------------|-------|
+| `daily_stats` | `(user_id, date, source, stat_type)` | Mirrors local `daily_stats` |
+| `top_tracks` | `(user_id, date, source, rank)` | Mirrors local `top_tracks` |
+| `top_curators` | `(user_id, date, source, rank)` | Mirrors local `top_curators` |
+| `track_stats` | `(user_id, date, songstats_track_id, source, stat_type)` | Mirrors local `track_stats` |
+| `user_settings` | `(user_id)` UNIQUE | Stores config for PWA display + Edge Function |
+
+### user_settings (Supabase-only table)
+
+```sql
+CREATE TABLE user_settings (
+  id BIGSERIAL PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  artist_name TEXT,
+  spotify_artist_id TEXT,
+  rapidapi_key TEXT,          -- Needed by Edge Function for server-side fetch
+  enabled_sources TEXT[] NOT NULL DEFAULT '{}',
+  last_sync_at TIMESTAMPTZ,   -- When the desktop last synced (used by Edge Function)
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### Row Level Security
+
+All tables use the same policy pattern:
+```sql
+ALTER TABLE <table> ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "own_data" ON <table> FOR ALL TO authenticated
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+```
+
+Table-level grants are required for the `authenticated` role:
+```sql
+GRANT ALL ON <table> TO authenticated;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+```

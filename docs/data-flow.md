@@ -4,10 +4,23 @@ This document traces how data moves through the app, from external API to screen
 
 ## Overview
 
+### Desktop (read-write)
 ```
 Songstats API  -->  songstats-api.ts  -->  database.ts (invoke)  -->  Rust commands  -->  SQLite
                                                                                             |
 Screen  <--  React components  <--  Dashboard state  <--  database.ts (invoke)  <--  Rust commands
+                                                                                            |
+                                                                              sync.ts  -->  Supabase
+```
+
+### PWA (read-only)
+```
+Supabase  -->  database-web.ts  -->  Dashboard state  -->  React components  -->  Screen
+```
+
+### Server-side fallback
+```
+Supabase Edge Function  -->  Songstats API  -->  Supabase (direct write via service_role)
 ```
 
 ## 1. Fetching Data
@@ -175,18 +188,67 @@ This smooths out SongStats' uneven reporting. For example, if SongStats reports 
 ```
 On Dashboard mount:
   1. Load settings
-  2. Check getAutoFetchState()
+  2. If readOnly (PWA): skip fetch entirely, just loadData()
+  3. Check getAutoFetchState()
      -> { lastFetchIso, fetchCountToday }
-  3. Is it a new day? (lastFetchIso date != today)
+  4. Is it a new day? (lastFetchIso date != today)
      -> Yes: should fetch
-  4. Have we fetched today? (fetchCountToday < 1)
+  5. Have we fetched today? (fetchCountToday < 1)
      -> No: should fetch
-  5. If should fetch:
+  6. If should fetch:
      a. Is this first launch? (no data in DB)
         -> Yes: fetch artist info + backfill historic
      b. fetchAllStats()
      c. If first fetch of day: fetchAndCacheTopContent()
      d. If weekly interval elapsed: fetchAndCacheTrackStats()
      e. recordFetch() -> store timestamp + increment counter
-     f. loadData() -> refresh UI
+     f. syncToSupabase() -> push to cloud (fire-and-forget, best-effort)
+     g. loadData() -> refresh UI
+```
+
+## 6. Cloud Sync Flow
+
+### Desktop → Supabase (after daily fetch)
+
+```
+syncToSupabase()
+  getSupabaseUser() -> check auth session
+  if not signed in: return (silent no-op)
+
+  getStatsRange(yesterday, today) -> local SQLite
+  supabase.from("daily_stats").upsert(rows, { onConflict: "user_id,date,source,stat_type" })
+
+  getAllCachedTopTracks() -> local SQLite
+  for each source:
+    supabase.from("top_tracks").upsert(rows, { onConflict: "user_id,date,source,rank" })
+
+  getAllCachedTopCurators() -> local SQLite
+  for each source:
+    supabase.from("top_curators").upsert(rows, { onConflict: "user_id,date,source,rank" })
+
+  syncSettings() -> push API key, artist ID, enabled sources, last_sync_at
+```
+
+### Full history sync (one-time, triggered from Settings)
+
+```
+syncAllHistory()
+  getStatsRange(90daysAgo, today) -> all local data
+  batch upsert in 1000-row chunks -> daily_stats
+  upsert top_tracks and top_curators for latest date
+  syncSettings()
+  return errors (if any) or null (success)
+```
+
+### Edge Function fallback (server-side, daily cron)
+
+```
+daily-fetch Edge Function (Deno)
+  query user_settings where last_sync_at < 24h ago
+  for each stale user with rapidapi_key + spotify_artist_id:
+    for each enabled_source:
+      fetch /artists/stats from Songstats API
+      mapStatFields() -> normalize field names
+      upsert into daily_stats (via service_role, bypasses RLS)
+    update last_sync_at
 ```

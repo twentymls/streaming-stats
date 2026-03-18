@@ -5,20 +5,23 @@ Streaming Stats is a cross-platform application (desktop + mobile) for tracking 
 ## High-Level Stack
 
 ```
-+--------------------------+
-|     React 19 Frontend    |  TypeScript 5.9, Vite 6, Chart.js
-|  (src/)                  |
-+-----------+--------------+
-            | Tauri IPC (invoke)
-+-----------+--------------+
-|     Rust Backend         |  Tauri 2, sqlx, tokio
-|  (src-tauri/src/)        |
-+-----------+--------------+
-            |
-+-----------+--------------+
-|     SQLite Database      |  Local file in app-data dir
++--------------------------+          +--------------------------+
+|     React 19 Frontend    |          |     PWA (read-only)      |
+|  (src/)                  |          |  Same React components   |
++-----------+--------------+          +-----------+--------------+
+            | Tauri IPC (invoke)                  | Supabase JS client
++-----------+--------------+          +-----------+--------------+
+|     Rust Backend         |          |     Supabase (Postgres)  |
+|  (src-tauri/src/)        |          |  Auth + RLS + Edge Fns   |
++-----------+--------------+          +--------------------------+
+            |                                     ^
++-----------+--------------+                      |
+|     SQLite Database      |-------- sync --------+
+|  Local file in app-data  |
 +--------------------------+
 ```
+
+The desktop app stores data locally in SQLite and optionally syncs to Supabase. The PWA reads directly from Supabase. A Supabase Edge Function acts as a fallback fetcher when the desktop hasn't synced in 24 hours.
 
 ## Frontend (src/)
 
@@ -33,7 +36,7 @@ The frontend is a single-page React 19 application bundled by Vite. It communica
 | `src/styles/` | Global CSS with CSS custom properties for theming |
 | `src/test/` | Vitest setup and Tauri plugin mocks |
 
-### Component tree
+### Component tree (Desktop)
 
 ```
 App
@@ -46,7 +49,20 @@ App
       +-- PlatformDetail  (full platform drilldown)
       |    +-- TrendChart  (line chart)
       |    +-- DailyDeltasChart (rolling avg line chart)
-      +-- Settings        (config page)
+      +-- Settings        (config page, cloud sync)
+```
+
+### Component tree (PWA)
+
+```
+PwaApp
+ +-- LoginPage        (email/password auth)
+ +-- Dashboard        (readOnly mode — no fetch, no settings)
+      +-- PlatformCard[]
+      +-- KpiRow
+      +-- DailyGrowthChart
+      +-- GrowthShare
+      +-- PlatformDetail
 ```
 
 ### State management
@@ -93,11 +109,37 @@ Frontend and backend communicate via Tauri's IPC:
 - Rust structs use `#[serde(rename_all = "camelCase")]` to match JS naming.
 - Commands that can fail return `Result<T, String>` -- Tauri serializes errors as rejected promises.
 
+## Cloud Sync & PWA
+
+### Sync module (`src/lib/sync.ts`)
+
+After each daily fetch, the desktop app pushes data to Supabase (fire-and-forget). `syncAllHistory()` performs a one-time bulk sync of all local data. `syncSettings()` pushes config (artist ID, API key, enabled sources) to `user_settings`.
+
+### PWA build strategy
+
+The PWA reuses the same React components as the desktop app. A separate Vite config (`vite.config.pwa.ts`) swaps Tauri-specific modules for web implementations via `resolve.alias`:
+
+| Import | Desktop (default) | PWA (aliased) |
+|--------|-------------------|---------------|
+| `../lib/database` | `database.ts` (Tauri IPC) | `database-web.ts` (Supabase queries) |
+| `../lib/settings` | `settings.ts` (plugin-store) | `settings-web.ts` (Supabase auth) |
+| `@tauri-apps/*` | Real Tauri plugins | `tauri-stubs.ts` (no-ops) |
+
+The Dashboard accepts a `readOnly` prop that disables auto-fetch and hides settings/API UI.
+
+### Supabase Edge Function
+
+`supabase/functions/daily-fetch/index.ts` runs as a cron-triggered fallback. If a user's `last_sync_at` is older than 24 hours, the function fetches from Songstats server-side and writes directly to Supabase using the service role key.
+
 ## External dependencies
 
 ### API
 
 All API calls go to the **Songstats RapidAPI** (`https://songstats.p.rapidapi.com`). The API key is stored encrypted via `@tauri-apps/plugin-store`. Rate limiting: 500 requests/month on the BASIC plan. The app retries on HTTP 429 (3 attempts, 1.5s delay).
+
+### Supabase (optional)
+
+Cloud sync uses `@supabase/supabase-js` to connect to a Supabase project. Configured via `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` environment variables. The anon key is safe to embed — Row Level Security ensures users can only access their own data.
 
 ### Settings storage
 
@@ -108,9 +150,9 @@ User settings (API key, artist ID, enabled platforms, fetch state) are persisted
 The CSP in `tauri.conf.json` restricts network access:
 ```
 default-src 'self';
-connect-src 'self' https://songstats.p.rapidapi.com;
+connect-src 'self' https://songstats.p.rapidapi.com https://*.supabase.co wss://*.supabase.co;
 style-src 'self' 'unsafe-inline';
 img-src 'self' https: data:
 ```
 
-Only `songstats.p.rapidapi.com` is allowed for API calls. Images from any HTTPS source are permitted (for track artwork).
+`songstats.p.rapidapi.com` is allowed for API calls. `*.supabase.co` is allowed for cloud sync. Images from any HTTPS source are permitted (for track artwork).
