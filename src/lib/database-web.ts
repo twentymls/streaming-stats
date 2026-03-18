@@ -49,31 +49,46 @@ export async function getStatsRange(
   const userId = await getUserId();
   if (!userId || !supabase) return [];
 
-  let query = supabase
-    .from("daily_stats")
-    .select("id,date,source,stat_type,value")
-    .eq("user_id", userId)
-    .gte("date", startDate)
-    .lte("date", endDate)
-    .order("date", { ascending: true });
+  // Supabase defaults to 1000 rows max — paginate to get all results
+  const PAGE_SIZE = 1000;
+  const allRows: DailyStat[] = [];
+  let offset = 0;
 
-  if (source) {
-    query = query.eq("source", source);
+  while (true) {
+    let query = supabase
+      .from("daily_stats")
+      .select("id,date,source,stat_type,value")
+      .eq("user_id", userId)
+      .gte("date", startDate)
+      .lte("date", endDate)
+      .order("date", { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1);
+
+    if (source) {
+      query = query.eq("source", source);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error("[db-web] getStatsRange failed:", error.message);
+      return allRows;
+    }
+
+    for (const row of data ?? []) {
+      allRows.push({
+        id: row.id,
+        date: row.date,
+        source: row.source,
+        stat_type: row.stat_type,
+        value: row.value,
+      });
+    }
+
+    if (!data || data.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
   }
 
-  const { data, error } = await query;
-  if (error) {
-    console.error("[db-web] getStatsRange failed:", error.message);
-    return [];
-  }
-
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    date: row.date,
-    source: row.source,
-    stat_type: row.stat_type,
-    value: row.value,
-  }));
+  return allRows;
 }
 
 // Write operations are no-ops in the PWA
