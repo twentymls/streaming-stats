@@ -26,7 +26,7 @@
       "iconAsTemplate": true
     },
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' https://songstats.p.rapidapi.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:"
+      "csp": "default-src 'self'; connect-src 'self' https://songstats.p.rapidapi.com https://*.supabase.co wss://*.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:"
     }
   },
   "bundle": {

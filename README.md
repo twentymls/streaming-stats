@@ -77,20 +77,56 @@ Spotify, Apple Music, YouTube, TikTok, Deezer, Amazon Music, Shazam, SoundCloud,
 3. **Dashboard** — View current stats per platform, KPI cards (daily growth, Spotify streams/day, YouTube views/day), a stacked bar chart of daily growth by platform, and a growth share breakdown. Filter by 7/30/60/90 day periods. Toggle smoothing for 7-day rolling averages.
 4. **Platform detail** — Click any platform card to see full stats, top tracks with Songstats links, trend charts, and (for TikTok) top curators. All detail data is served from the local cache — no API calls on view.
 5. **Backfill** — One-time download of up to 90 days of historical data from Songstats (Settings > Backfill historic data).
+6. **Cloud Sync** (optional) — Sign in with email/password in Settings to sync data to Supabase. A read-only PWA lets you view stats on your phone.
 
 ### Data & Privacy
 
-All data is stored **locally on your machine**:
+All data is stored **locally on your machine** by default:
 - Stats in a SQLite database (`streaming_stats.db`)
 - Settings (API key, artist ID) in Tauri's encrypted store
 
 No data is sent anywhere except the Songstats API calls to fetch stats.
+
+**Optional Cloud Sync**: If you enable Cloud Sync (Settings > Cloud Sync), your stats are also pushed to a Supabase database. Data is protected by Row Level Security — only your authenticated account can access your data. Your RapidAPI key is stored in the Supabase database (encrypted at rest) so the server-side fallback fetcher can keep your data fresh when the desktop app is off.
 
 ### API Usage
 
 The app uses the Songstats API via RapidAPI. The **BASIC plan** allows 500 requests/month. The daily update uses ~16 API calls (9 platform stats + 6 top tracks + 1 top curators). Per-track stats are refreshed weekly (~10 calls). Once-a-day updates keep monthly usage under 500 calls. Top tracks and curators are stored in the local DB during the daily fetch, so detail views read directly from the database without making API calls. A backfill uses ~9 calls. The dashboard shows your current monthly usage.
 
 A 1.2 second delay is added between platform requests to stay within the per-second rate limit.
+
+## Cloud Sync & Mobile PWA
+
+The desktop app can optionally sync data to [Supabase](https://supabase.com/) (free tier). A read-only Progressive Web App (PWA) reads from Supabase, giving you mobile access without the App Store.
+
+### How it works
+
+1. **Desktop syncs to cloud** — After each daily fetch, the app pushes stats to Supabase (best-effort, non-blocking). You can also trigger a full history sync from Settings.
+2. **Server-side fallback** — A Supabase Edge Function runs daily. If the desktop hasn't synced in 24 hours, the Edge Function fetches from Songstats directly so the PWA never shows stale data.
+3. **PWA on your phone** — Open the PWA URL in Safari, tap "Add to Home Screen". It looks and works like a native app (standalone mode, dark theme, safe-area support).
+
+### Self-hosting the PWA
+
+1. Create a [Supabase](https://supabase.com/) project (free tier)
+2. Run the migration in `supabase/migrations/001_initial_schema.sql` in the Supabase SQL editor
+3. Enable Email/Password auth in the Supabase dashboard
+4. Set environment variables:
+   ```
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key
+   ```
+5. Build the PWA: `npm run build:pwa`
+6. Deploy `dist-pwa/` to any static host (Vercel, Netlify, etc.)
+
+See `vercel.json` for the SPA rewrite config if deploying to Vercel.
+
+### Edge Function (optional)
+
+Deploy the fallback fetcher from `supabase/functions/daily-fetch/`:
+```bash
+supabase functions deploy daily-fetch
+```
+Set a daily cron trigger via `pg_cron` in the Supabase SQL editor.
 
 ## Local Development Setup
 
@@ -148,6 +184,9 @@ npx tauri ios dev
 
 # Android Emulator
 npx tauri android dev
+
+# PWA dev server (no Tauri backend, reads from Supabase)
+npm run dev:pwa
 ```
 
 ### Build for production
@@ -164,6 +203,9 @@ npx tauri ios build
 
 # Android
 npx tauri android build
+
+# PWA (outputs to dist-pwa/)
+npm run build:pwa
 ```
 
 Desktop output:
@@ -200,14 +242,23 @@ streaming-stats/
 │   │   ├── GrowthShare.tsx     # Platform growth share bars
 │   │   ├── StatsChart.tsx      # Trend line chart
 │   │   ├── Setup.tsx           # 3-step onboarding flow
-│   │   └── Settings.tsx        # Config, platform toggles, backfill
+│   │   ├── Settings.tsx        # Config, platform toggles, cloud sync, backfill
+│   │   └── LoginPage.tsx       # PWA email/password login
 │   ├── lib/
 │   │   ├── songstats-api.ts    # Songstats API client with retry logic
+│   │   ├── songstats-fields.ts # Shared field mappings (desktop + Edge Function)
 │   │   ├── database.ts         # Tauri IPC wrappers for Rust DB commands
-│   │   ├── settings.ts         # Encrypted settings store
+│   │   ├── database-web.ts     # Supabase-backed database (PWA)
+│   │   ├── settings.ts         # Encrypted settings store (desktop)
+│   │   ├── settings-web.ts     # Supabase-backed settings (PWA)
+│   │   ├── supabase.ts         # Supabase client singleton
+│   │   ├── sync.ts             # Cloud sync (desktop → Supabase)
+│   │   ├── tauri-stubs.ts      # No-op stubs for PWA build
 │   │   ├── utils.ts            # Data aggregation and formatting
 │   │   ├── constants.ts        # Platform names, colors, stat labels
 │   │   └── types.ts            # TypeScript interfaces
+│   ├── PwaApp.tsx              # PWA root (auth gate + read-only dashboard)
+│   ├── main-pwa.tsx            # PWA entry point
 │   └── styles/
 │       └── globals.css         # Dark theme with CSS custom properties
 ├── src-tauri/                  # Rust backend (Tauri 2)
@@ -217,6 +268,15 @@ streaming-stats/
 │       ├── db.rs               # SQLite pool and migrations
 │       ├── models.rs           # Serde models for IPC boundary
 │       └── error.rs            # Error types
+├── supabase/                   # Supabase cloud infrastructure
+│   ├── migrations/
+│   │   └── 001_initial_schema.sql  # Postgres schema (RLS + indexes)
+│   └── functions/
+│       └── daily-fetch/        # Edge Function (server-side fallback fetcher)
+├── public-pwa/                 # PWA static assets (manifest, service worker)
+├── vite.config.pwa.ts          # PWA Vite config (aliases Tauri → web modules)
+├── index-pwa.html              # PWA HTML entry point
+├── vercel.json                 # Vercel SPA rewrite config
 ├── docs/                       # Detailed documentation
 └── package.json
 ```
@@ -231,9 +291,10 @@ See [`docs/`](docs/README.md) for detailed documentation on architecture, databa
 | App framework | [Tauri v2](https://v2.tauri.app/) |
 | Frontend | React 19, TypeScript 5.9, Vite 6 |
 | Backend | Rust (Edition 2021) |
-| Database | SQLite (via sqlx) |
+| Database | SQLite (via sqlx) — local; Supabase (Postgres) — cloud |
 | Settings | tauri-plugin-store (encrypted) |
 | HTTP | tauri-plugin-http (reqwest) |
+| Cloud sync | [Supabase](https://supabase.com/) (auth, database, Edge Functions) |
 | Charts | Chart.js + react-chartjs-2 |
 | Dates | date-fns 4 |
 | API | [Songstats via RapidAPI](https://rapidapi.com/songstats-app-songstats-app-default/api/songstats) |

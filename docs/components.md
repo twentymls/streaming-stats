@@ -206,5 +206,43 @@ Configuration page accessible from the dashboard header.
 2. **Spotify Artist ID**: Editable text field.
 3. **Enabled Platforms**: Grid of 8 checkboxes to toggle which platforms are fetched.
 4. **API Usage**: Progress bar showing current month's usage (X/500).
-5. **Backfill Historic**: Button to download up to 90 days of historical data. Disabled if already fetched.
-6. **Actions**: Save button and Full Reset button (returns to Setup, clears all data).
+5. **Cloud Sync** (shown when Supabase is configured): Sign in/sign up form, or (when signed in) email display + "Sync all history" button + sign out. Errors from sync are displayed inline.
+6. **Actions**: Save and Cancel buttons.
+7. **Danger Zone**: Full Reset button (returns to Setup, clears all data).
+
+---
+
+## LoginPage (`src/components/LoginPage.tsx`)
+
+PWA-only email/password login page. Used by `PwaApp` as the auth gate.
+
+**Features:**
+- Toggle between Sign In and Sign Up modes.
+- Uses `supabase.auth.signInWithPassword()` / `supabase.auth.signUp()`.
+- Error messages displayed inline.
+- Styled with existing `.setup-page`, `.setup-card` CSS classes.
+
+**Props:**
+- `onAuth` -- callback when authentication succeeds (receives `User` object)
+
+---
+
+## PwaApp (`src/PwaApp.tsx`)
+
+PWA root component. Replaces `App` in the PWA build.
+
+**Logic:**
+1. On mount, checks Supabase session via `supabase.auth.getSession()`.
+2. If no session, renders `LoginPage`.
+3. If authenticated, renders `Dashboard` with `readOnly` prop.
+4. Listens for `onAuthStateChange` to handle sign-out.
+
+---
+
+## Dashboard `readOnly` mode
+
+When `readOnly` is true (PWA):
+- Auto-fetch `useEffect` is skipped entirely.
+- Header hides: API usage badge, fetch status/countdown, Settings button, Update button.
+- Header shows: "Synced: {date}" with last update timestamp.
+- All chart/card/KPI rendering works identically to the desktop version.

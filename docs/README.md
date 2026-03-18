@@ -6,10 +6,10 @@ Comprehensive documentation for Streaming Stats -- a cross-platform Tauri 2 + Re
 
 | Document | Description |
 |----------|-------------|
-| [Architecture](architecture.md) | High-level stack, frontend/backend structure, communication protocol, external dependencies |
+| [Architecture](architecture.md) | High-level stack, frontend/backend structure, communication protocol, cloud sync, PWA |
 | [Components](components.md) | Every React component: purpose, props, state, rendering logic |
-| [Data Flow](data-flow.md) | How data moves from Songstats API to SQLite to screen, including auto-fetch decision tree |
-| [Database](database.md) | Full SQLite schema (5 tables), query patterns, data lifecycle |
+| [Data Flow](data-flow.md) | How data moves from Songstats API to SQLite/Supabase to screen, including cloud sync |
+| [Database](database.md) | Full SQLite schema (5 tables), Supabase schema (5 tables), query patterns, data lifecycle |
 | [API](api.md) | Songstats API endpoints, parameters, field mapping, rate limiting, call budget |
 | [Rust Backend](rust-backend.md) | Tauri commands, models, error handling, database pool, migrations, dependencies |
 | [Utilities](utilities.md) | All utility functions and types: formatting, stat selection, delta computation algorithms |
@@ -59,10 +59,12 @@ cd src-tauri && cargo clippy && cargo fmt  # Backend
 
 ```
 src/                    React 19 frontend (TypeScript)
-  components/           UI components (Dashboard, PlatformCard, etc.)
-  lib/                  Business logic (API client, database, utils)
+  components/           UI components (Dashboard, PlatformCard, LoginPage, etc.)
+  lib/                  Business logic (API client, database, sync, utils)
   styles/               CSS (dark theme, custom properties)
   test/                 Test setup and Tauri plugin mocks
+  PwaApp.tsx            PWA root component (auth gate)
+  main-pwa.tsx          PWA entry point
 
 src-tauri/src/          Rust backend (Tauri 2)
   lib.rs                App setup and plugin registration
@@ -70,4 +72,8 @@ src-tauri/src/          Rust backend (Tauri 2)
   db.rs                 SQLite pool and migrations
   models.rs             Serialization models
   error.rs              Error types
+
+supabase/               Cloud infrastructure
+  migrations/           Postgres schema (RLS, indexes)
+  functions/            Edge Functions (daily-fetch fallback)
 ```

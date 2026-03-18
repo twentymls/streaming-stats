@@ -252,6 +252,52 @@ body {
   color: var(--accent-hover);
 }
 
+.setup-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.setup-field {
+  text-align: left;
+  margin-bottom: 1rem;
+}
+
+.setup-field label {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.setup-submit {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.setup-toggle {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-top: 1rem;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.btn-link:hover {
+  color: var(--accent-hover);
+}
+
 .setup-input {
   width: 100%;
   padding: 0.75rem 1rem;
@@ -872,6 +918,50 @@ body {
   color: var(--text-secondary);
   margin-bottom: 0.75rem;
   font-weight: 600;
+}
+
+.settings-description {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.cloud-sync-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cloud-sync-email {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.cloud-sync-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.cloud-sync-auth {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cloud-sync-auth .setup-input {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 140px;
+}
+
+.cloud-error {
+  font-size: var(--text-xs);
+  color: var(--danger);
+  margin-bottom: 0.5rem;
+  width: 100%;
 }
 
 .settings-danger-zone {
