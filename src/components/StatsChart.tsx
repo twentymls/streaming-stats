@@ -56,7 +56,7 @@ export function TrendChart({ stats, title, statType }: StatsChartProps) {
         data: dates.map((date) => sourceStats.find((s) => s.date === date)?.value ?? null),
         borderColor: DSP_COLORS[source] ?? "#888",
         backgroundColor: (DSP_COLORS[source] ?? "#888") + "20",
-        tension: 0.3,
+        tension: 0.6,
         fill: false,
         pointRadius: 2,
       };
